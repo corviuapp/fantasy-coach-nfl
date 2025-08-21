@@ -20,14 +20,13 @@ app.use(express.json());
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'healthy', 
-    message: 'Backend with SQLite is running!'
+    message: 'Backend is running!'
   });
 });
 
 app.get('/api/test', (req, res) => {
   res.json({ 
     message: 'Backend connected successfully!',
-    database: 'SQLite connected',
     timestamp: new Date().toISOString()
   });
 });
@@ -140,7 +139,6 @@ app.use('/api/coach', coachRoutes);
 app.listen(PORT, () => {
   console.log('================================');
   console.log('Fantasy Coach NFL Backend');
-  console.log('Database: SQLite (better-sqlite3)');
   console.log('Server running on port:', PORT);
   console.log('http://localhost:' + PORT);
   console.log('================================');
