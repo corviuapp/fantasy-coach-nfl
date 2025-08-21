@@ -1,0 +1,9 @@
+{
+  "name": "fantasy-coach-nfl",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "cd frontend && npm install && npm run build",
+    "start": "cd backend && npm install && npm start",
+    "install": "npm install --prefix backend && npm install --prefix frontend"
+  }
+}
