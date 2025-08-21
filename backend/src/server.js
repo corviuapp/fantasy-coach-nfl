@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { db, createTables } from './database.js';
+// import { db, createTables } from './database.js';
 import yahooRoutes from './routes/yahoo.js';
 import expertRoutes from './routes/experts.js';
 import coachRoutes from './routes/coach.js';
@@ -32,6 +32,7 @@ app.get('/api/test', (req, res) => {
   });
 });
 
+/*
 app.post('/api/auth/login', (req, res) => {
   const { email, password } = req.body;
   
@@ -59,7 +60,9 @@ app.post('/api/auth/login', (req, res) => {
     res.status(500).json({ error: 'Database error' });
   }
 });
+*/
 
+/*
 app.get('/api/recommendations/draft', (req, res) => {
   try {
     const players = db.prepare('SELECT * FROM players ORDER BY projected_points DESC LIMIT 3').all();
@@ -81,6 +84,7 @@ app.get('/api/recommendations/draft', (req, res) => {
     res.status(500).json({ error: 'Database error' });
   }
 });
+*/
 
 // Yahoo OAuth - Agregar ANTES de app.listen
 import { YahooService } from './services/yahoo.service.js';
