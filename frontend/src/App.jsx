@@ -404,6 +404,47 @@ function App() {
               </div>
             </div>
 
+            {/* Yahoo Leagues Section */}
+            <div className="mb-8">
+              <h3 className="text-xl font-semibold text-gray-800 mb-4">My Leagues</h3>
+              {leagues.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {leagues.map((league) => (
+                    <div key={league.id} className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                      <div className="mb-3">
+                        <h4 className="font-semibold text-gray-900 mb-1">{league.name}</h4>
+                        <div className="text-sm text-gray-600">
+                          <div className="flex justify-between items-center mb-1">
+                            <span>Teams:</span>
+                            <span className="font-medium">{league.teams}</span>
+                          </div>
+                          <div className="flex justify-between items-center mb-1">
+                            <span>Platform:</span>
+                            <span className="font-medium capitalize">{league.platform}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span>Draft:</span>
+                            <span className={`font-medium px-2 py-1 rounded-full text-xs ${
+                              league.draft_status === 'postdraft' 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {league.draft_status === 'postdraft' ? 'Complete' : 'Pending'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 text-center">
+                  <div className="text-gray-500 mb-2">No leagues connected yet</div>
+                  <p className="text-sm text-gray-400">Connect your Yahoo account to import your leagues</p>
+                </div>
+              )}
+            </div>
+
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 sm:p-6 mb-6">
               <h3 className="text-lg font-semibold text-yellow-800 mb-3">⚠️ Action Required</h3>
               <ul className="list-disc list-inside text-yellow-800 space-y-1">
