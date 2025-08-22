@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import yahooRoutes from './routes/yahoo.js';
 import expertRoutes from './routes/experts.js';
 import coachRoutes from './routes/coach.js';
+import lineupRoutes from './routes/lineup.js';
 
 dotenv.config();
 
@@ -239,6 +240,7 @@ app.set('tokenStore', tokenStore);
 app.use('/api/auth/yahoo', yahooRoutes);
 app.use('/api/expert-consensus', expertRoutes);
 app.use('/api/coach', coachRoutes);
+app.use('/api/lineup', lineupRoutes);
 app.listen(PORT, () => {
   console.log('================================');
   console.log('Fantasy Coach NFL Backend');

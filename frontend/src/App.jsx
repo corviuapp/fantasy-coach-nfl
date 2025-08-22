@@ -24,6 +24,9 @@ function App() {
     const [roster, setRoster] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [recommendations, setRecommendations] = useState(null);
+    const [showRecommendations, setShowRecommendations] = useState(false);
+    const [recommendationsLoading, setRecommendationsLoading] = useState(false);
 
     const sessionId = localStorage.getItem('yahoo_sessionId');
     const availableLeagues = leagues.filter(league => league.draft_status === 'postdraft');
@@ -95,8 +98,49 @@ function App() {
       }
     };
 
-    const handleGetRecommendations = () => {
-      alert('Start/Sit recommendations feature coming soon!');
+    const handleGetRecommendations = async () => {
+      if (!roster.length || !selectedLeague) {
+        setError('Please select a league and load roster first');
+        return;
+      }
+
+      setRecommendationsLoading(true);
+      setError('');
+      
+      try {
+        const response = await fetch(`${API_URL}/api/lineup/optimize`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            roster: roster,
+            leagueKey: selectedLeague
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          setRecommendations(data);
+          setShowRecommendations(true);
+        } else {
+          setError(data.message || 'Error getting recommendations');
+        }
+      } catch (err) {
+        console.error('Error getting recommendations:', err);
+        setError('Failed to get recommendations. Please try again.');
+      } finally {
+        setRecommendationsLoading(false);
+      }
+    };
+
+    // Helper function to get recommendation for a player
+    const getPlayerRecommendation = (player) => {
+      if (!recommendations || !recommendations.recommendations) return null;
+      return recommendations.recommendations.find(rec => 
+        rec.player_name === player.name || rec.player_id === player.player_id
+      );
     };
 
     const startingLineup = roster.filter(player => player.selected_position !== 'BN');
@@ -151,9 +195,10 @@ function App() {
                 <div className="mb-6 text-center">
                   <button
                     onClick={handleGetRecommendations}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+                    disabled={recommendationsLoading}
+                    className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-bold py-3 px-6 rounded-lg transition-colors"
                   >
-                    Get Start/Sit Recommendations
+                    {recommendationsLoading ? 'Getting Recommendations...' : 'Get Start/Sit Recommendations'}
                   </button>
                 </div>
 
@@ -166,8 +211,16 @@ function App() {
                       Starting Lineup ({startingLineup.length})
                     </h3>
                     <div className="space-y-3">
-                      {startingLineup.map((player) => (
-                        <div key={player.player_id} className="border border-gray-200 rounded-lg p-3">
+                      {startingLineup.map((player) => {
+                        const recommendation = getPlayerRecommendation(player);
+                        const isRecommendedSit = recommendation?.action === 'sit';
+                        const isRecommendedStart = recommendation?.action === 'start';
+                        return (
+                        <div key={player.player_id} className={`border rounded-lg p-3 ${
+                          isRecommendedSit ? 'border-red-300 bg-red-50' :
+                          isRecommendedStart ? 'border-green-300 bg-green-50' :
+                          'border-gray-200'
+                        }`}>
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
                               <h4 className="font-medium text-gray-900">{player.name}</h4>
@@ -192,10 +245,29 @@ function App() {
                                   </span>
                                 </div>
                               )}
+                              {recommendation && (
+                                <div className="mt-2">
+                                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                                    recommendation.action === 'sit' ? 'bg-red-100 text-red-800' :
+                                    recommendation.action === 'start' ? 'bg-green-100 text-green-800' :
+                                    'bg-blue-100 text-blue-800'
+                                  }`}>
+                                    {recommendation.action === 'sit' ? '🔻 Recommended SIT' :
+                                     recommendation.action === 'start' ? '🔼 Recommended START' :
+                                     `📊 ${recommendation.action.toUpperCase()}`}
+                                  </span>
+                                  {recommendation.reason && (
+                                    <div className="text-xs text-gray-600 mt-1">
+                                      {recommendation.reason}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                       {startingLineup.length === 0 && (
                         <p className="text-gray-500 text-center py-4">No players in starting lineup</p>
                       )}
@@ -209,8 +281,16 @@ function App() {
                       Bench ({bench.length})
                     </h3>
                     <div className="space-y-3">
-                      {bench.map((player) => (
-                        <div key={player.player_id} className="border border-gray-200 rounded-lg p-3">
+                      {bench.map((player) => {
+                        const recommendation = getPlayerRecommendation(player);
+                        const isRecommendedStart = recommendation?.action === 'start';
+                        const isRecommendedSit = recommendation?.action === 'sit';
+                        return (
+                        <div key={player.player_id} className={`border rounded-lg p-3 ${
+                          isRecommendedStart ? 'border-green-300 bg-green-50' :
+                          isRecommendedSit ? 'border-red-300 bg-red-50' :
+                          'border-gray-200'
+                        }`}>
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
                               <h4 className="font-medium text-gray-900">{player.name}</h4>
@@ -232,10 +312,29 @@ function App() {
                                   </span>
                                 </div>
                               )}
+                              {recommendation && (
+                                <div className="mt-2">
+                                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                                    recommendation.action === 'sit' ? 'bg-red-100 text-red-800' :
+                                    recommendation.action === 'start' ? 'bg-green-100 text-green-800' :
+                                    'bg-blue-100 text-blue-800'
+                                  }`}>
+                                    {recommendation.action === 'sit' ? '🔻 Recommended SIT' :
+                                     recommendation.action === 'start' ? '🔼 Recommended START' :
+                                     `📊 ${recommendation.action.toUpperCase()}`}
+                                  </span>
+                                  {recommendation.reason && (
+                                    <div className="text-xs text-gray-600 mt-1">
+                                      {recommendation.reason}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                       {bench.length === 0 && (
                         <p className="text-gray-500 text-center py-4">No players on bench</p>
                       )}
