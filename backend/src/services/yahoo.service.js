@@ -44,6 +44,10 @@ export class YahooService {
     console.log('Requesting token with Basic Auth...');
     console.log('Redirect URI:', this.redirectUri);
 
+    console.log('About to call Yahoo token endpoint...');
+    console.log('URL:', 'https://api.login.yahoo.com/oauth2/get_token');
+    console.log('Params being sent:', params.toString());
+
     const response = await axios.post(
       'https://api.login.yahoo.com/oauth2/get_token',
       params,
@@ -57,6 +61,9 @@ export class YahooService {
 
     return response.data;
   } catch (error) {
+    console.error('Full error object:', error);
+    console.error('Error response status:', error.response?.status);
+    console.error('Error response headers:', error.response?.headers);
     console.error('Yahoo token error:', error.response?.data);
     throw error;
   }
