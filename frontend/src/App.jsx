@@ -206,29 +206,29 @@ function App() {
                       <span className="w-3 h-3 bg-green-500 rounded-full mr-2"></span>
                       Starting Lineup ({startingLineup.length})
                     </h3>
-                    <div className="space-y-3">
+                    <div className="space-y-1">
                       {startingLineup.map((player) => {
                         const recommendation = getPlayerRecommendation(player);
                         const isRecommendedSit = recommendation?.action === 'sit';
                         const isRecommendedStart = recommendation?.action === 'start';
                         return (
-                        <div key={player.player_id} className={`border rounded-lg p-3 ${
+                        <div key={player.player_id} className={`border rounded-md p-2 ${
                           isRecommendedSit ? 'border-red-300 bg-red-50' :
                           isRecommendedStart ? 'border-green-300 bg-green-50' :
                           'border-gray-200'
                         }`}>
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
-                              <h4 className="font-medium text-gray-900">{player.name}</h4>
-                              <div className="text-sm text-gray-600 mt-1">
+                              <h4 className="font-medium text-sm text-gray-900">{player.name}</h4>
+                              <div className="text-xs text-gray-600 mt-0.5">
                                 <span className="font-medium">{player.position}</span> - {player.team}
                                 {player.selected_position !== player.position && (
                                   <span className="ml-2 text-indigo-600">({player.selected_position})</span>
                                 )}
                               </div>
                               {player.status && (
-                                <div className="mt-1">
-                                  <span className={`text-xs px-2 py-1 rounded-full ${
+                                <div className="mt-0.5">
+                                  <span className={`text-xs px-1 py-0.5 rounded-full ${
                                     player.status === 'Q' ? 'bg-yellow-100 text-yellow-800' :
                                     player.status === 'O' ? 'bg-red-100 text-red-800' :
                                     player.status === 'IR' ? 'bg-red-100 text-red-800' :
@@ -242,18 +242,18 @@ function App() {
                                 </div>
                               )}
                               {recommendation && (
-                                <div className="mt-2">
-                                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                                <div className="mt-1">
+                                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
                                     recommendation.action === 'sit' ? 'bg-red-100 text-red-800' :
                                     recommendation.action === 'start' ? 'bg-green-100 text-green-800' :
                                     'bg-blue-100 text-blue-800'
                                   }`}>
-                                    {recommendation.action === 'sit' ? '🔻 Recommended SIT' :
-                                     recommendation.action === 'start' ? '🔼 Recommended START' :
-                                     `📊 ${recommendation.action.toUpperCase()}`}
+                                    {recommendation.action === 'sit' ? 'Recommended SIT' :
+                                     recommendation.action === 'start' ? 'Recommended START' :
+                                     `${recommendation.action.toUpperCase()}`}
                                   </span>
                                   {recommendation.reason && (
-                                    <div className="text-xs text-gray-600 mt-1">
+                                    <div className="text-xs text-gray-600 mt-0.5">
                                       {recommendation.reason}
                                     </div>
                                   )}
@@ -276,26 +276,26 @@ function App() {
                       <span className="w-3 h-3 bg-gray-400 rounded-full mr-2"></span>
                       Bench ({bench.length})
                     </h3>
-                    <div className="space-y-3">
+                    <div className="space-y-1">
                       {bench.map((player) => {
                         const recommendation = getPlayerRecommendation(player);
                         const isRecommendedStart = recommendation?.action === 'start';
                         const isRecommendedSit = recommendation?.action === 'sit';
                         return (
-                        <div key={player.player_id} className={`border rounded-lg p-3 ${
+                        <div key={player.player_id} className={`border rounded-md p-2 ${
                           isRecommendedStart ? 'border-green-300 bg-green-50' :
                           isRecommendedSit ? 'border-red-300 bg-red-50' :
                           'border-gray-200'
                         }`}>
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
-                              <h4 className="font-medium text-gray-900">{player.name}</h4>
-                              <div className="text-sm text-gray-600 mt-1">
+                              <h4 className="font-medium text-sm text-gray-900">{player.name}</h4>
+                              <div className="text-xs text-gray-600 mt-0.5">
                                 <span className="font-medium">{player.position}</span> - {player.team}
                               </div>
                               {player.status && (
-                                <div className="mt-1">
-                                  <span className={`text-xs px-2 py-1 rounded-full ${
+                                <div className="mt-0.5">
+                                  <span className={`text-xs px-1 py-0.5 rounded-full ${
                                     player.status === 'Q' ? 'bg-yellow-100 text-yellow-800' :
                                     player.status === 'O' ? 'bg-red-100 text-red-800' :
                                     player.status === 'IR' ? 'bg-red-100 text-red-800' :
@@ -309,18 +309,18 @@ function App() {
                                 </div>
                               )}
                               {recommendation && (
-                                <div className="mt-2">
-                                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                                <div className="mt-1">
+                                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
                                     recommendation.action === 'sit' ? 'bg-red-100 text-red-800' :
                                     recommendation.action === 'start' ? 'bg-green-100 text-green-800' :
                                     'bg-blue-100 text-blue-800'
                                   }`}>
-                                    {recommendation.action === 'sit' ? '🔻 Recommended SIT' :
-                                     recommendation.action === 'start' ? '🔼 Recommended START' :
-                                     `📊 ${recommendation.action.toUpperCase()}`}
+                                    {recommendation.action === 'sit' ? 'Recommended SIT' :
+                                     recommendation.action === 'start' ? 'Recommended START' :
+                                     `${recommendation.action.toUpperCase()}`}
                                   </span>
                                   {recommendation.reason && (
-                                    <div className="text-xs text-gray-600 mt-1">
+                                    <div className="text-xs text-gray-600 mt-0.5">
                                       {recommendation.reason}
                                     </div>
                                   )}
@@ -356,13 +356,13 @@ function App() {
                                     {cambio.player_name || `Player ${cambio.player_id}`}
                                   </div>
                                   <div className="text-sm text-gray-600 mt-1">
-                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                    <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${
                                       cambio.action === 'start' ? 'bg-green-100 text-green-800' :
                                       cambio.action === 'sit' ? 'bg-red-100 text-red-800' :
                                       'bg-blue-100 text-blue-800'
                                     }`}>
-                                      {cambio.action === 'start' ? '🔼 START' :
-                                       cambio.action === 'sit' ? '🔻 SIT' :
+                                      {cambio.action === 'start' ? 'START' :
+                                       cambio.action === 'sit' ? 'SIT' :
                                        cambio.action?.toUpperCase()}
                                     </span>
                                   </div>
