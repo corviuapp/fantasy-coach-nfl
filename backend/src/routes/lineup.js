@@ -11,122 +11,227 @@ router.post('/optimize', async (req, res) => {
   try {
     const { roster, leagueKey, sessionId } = req.body;
 
+    // Validación de entrada mejorada
     if (!roster || !Array.isArray(roster)) {
       return res.status(400).json({
-        error: 'Se requiere un array de jugadores en el roster'
+        error: 'Se requiere un array de jugadores en el roster',
+        success: false
       });
     }
 
-    if (!leagueKey || !sessionId) {
+    if (roster.length === 0) {
       return res.status(400).json({
-        error: 'Se requiere leagueKey y sessionId para obtener configuraciones de la liga'
+        error: 'El roster no puede estar vacío',
+        success: false
       });
     }
 
-    // Obtener configuraciones de la liga de Yahoo
+    // Obtener configuraciones de la liga de Yahoo (opcional)
     let leagueSettings = null;
     let rosterPositions = [];
     let scoringSettings = null;
     
-    try {
-      const accessToken = await getAccessTokenFromSession(sessionId);
-      if (accessToken) {
-        leagueSettings = await yahooService.getLeagueSettings(accessToken, leagueKey);
-        
-        // Extraer game_key del league_key para obtener roster positions
-        const gameKey = leagueKey.split('.')[0] + '.l.' + leagueKey.split('.')[2];
-        const gameKeyOnly = leagueKey.split('.')[0];
-        
-        try {
-          const rosterPositionsData = await yahooService.getRosterPositions(accessToken, gameKeyOnly);
-          const statCategoriesData = await yahooService.getStatCategories(accessToken, gameKeyOnly);
-          
-          rosterPositions = parseRosterPositions(rosterPositionsData);
-          scoringSettings = parseScoringSettings(statCategoriesData, leagueSettings);
-        } catch (error) {
-          console.log('Could not fetch roster positions or scoring settings:', error.message);
+    if (leagueKey && sessionId) {
+      try {
+        const accessToken = await getAccessTokenFromSession(sessionId, req);
+        if (accessToken) {
+          try {
+            leagueSettings = await yahooService.getLeagueSettings(accessToken, leagueKey);
+            
+            // Extraer game_key del league_key para obtener roster positions
+            const gameKeyOnly = leagueKey.split('.')[0];
+            
+            const rosterPositionsData = await yahooService.getRosterPositions(accessToken, gameKeyOnly);
+            const statCategoriesData = await yahooService.getStatCategories(accessToken, gameKeyOnly);
+            
+            rosterPositions = parseRosterPositions(rosterPositionsData);
+            scoringSettings = parseScoringSettings(statCategoriesData, leagueSettings);
+          } catch (apiError) {
+            console.log('Yahoo API call failed:', apiError.message);
+            // Continue with defaults
+          }
         }
+      } catch (sessionError) {
+        console.log('Session token retrieval failed:', sessionError.message);
+        // Continue with defaults
       }
-    } catch (error) {
-      console.log('Could not fetch Yahoo league settings:', error.message);
     }
 
-    const playersWithProjections = await getPlayerProjections(roster, scoringSettings);
-    const playersWithMatchups = await analyzeMatchups(playersWithProjections);
+    // Generar proyecciones y análisis de matchups con validación
+    let playersWithProjections = [];
+    let playersWithMatchups = [];
     
-    // Usar Groq para analizar los datos
-    console.log('About to call Groq with roster length:', playersWithMatchups.length);
-    
-    let groqResponse = null;
     try {
-      const completion = await groq.chat.completions.create({
-        messages: [{
-          role: 'user',
-          content: `Analiza los siguientes datos de jugadores de fantasy football y proporciona recomendaciones de lineup optimizado. Devuelve una respuesta en formato JSON con las siguientes propiedades: lineup_optimizado (array de jugadores recomendados para iniciar), cambios_sugeridos (array de cambios recomendados), y explicaciones (array de explicaciones detalladas para cada decisión). Datos: ${JSON.stringify(playersWithMatchups)}`
-        }],
-        model: 'mixtral-8x7b-32768',
-        temperature: 0.7,
-        response_format: { type: 'json_object' }
+      playersWithProjections = await getPlayerProjections(roster, scoringSettings);
+      playersWithMatchups = await analyzeMatchups(playersWithProjections);
+    } catch (projectionError) {
+      console.error('Error generating projections:', projectionError.message);
+      return res.status(500).json({
+        error: 'Error procesando datos de jugadores',
+        success: false
       });
-      
-      groqResponse = JSON.parse(completion.choices[0].message.content);
-    } catch (error) {
-      console.error('Groq API error:', error.message);
-      groqResponse = null;
     }
-    const optimizedLineup = groqResponse || await generateOptimizedLineup(playersWithMatchups, rosterPositions, leagueSettings);
+
+    // Usar fallback directamente sin Groq para evitar crashes
+    console.log('Generating optimized lineup with fallback method for', playersWithMatchups.length, 'players');
+    
+    let optimizedLineup;
+    try {
+      optimizedLineup = await generateOptimizedLineup(playersWithMatchups, rosterPositions, leagueSettings);
+      
+      if (!optimizedLineup || !optimizedLineup.lineup) {
+        throw new Error('Failed to generate lineup');
+      }
+    } catch (optimizationError) {
+      console.error('Optimization error:', optimizationError.message);
+      
+      // Emergency fallback with minimal data
+      optimizedLineup = {
+        lineup: playersWithMatchups.slice(0, 9).map(player => ({
+          player_id: player.player_id || 'unknown',
+          player_name: player.name || 'Unknown Player',
+          position: player.display_position || player.position || 'N/A',
+          projected_points: (player.projection?.points || 10).toFixed(1),
+          confidence: player.projection?.confidence || 75,
+          scoring_type: 'standard',
+          lineup_position: player.position || 'FLEX'
+        })),
+        changes: [],
+        explanations: [{
+          player_id: 'general',
+          player_name: 'Lineup Optimización',
+          explanation: 'Se generó un lineup básico debido a limitaciones de procesamiento'
+        }]
+      };
+    }
+
+    // Validar respuesta antes de enviar
+    if (!optimizedLineup.lineup || !Array.isArray(optimizedLineup.lineup)) {
+      return res.status(500).json({
+        error: 'Error en la generación del lineup optimizado',
+        success: false
+      });
+    }
 
     res.json({
       lineup_optimizado: optimizedLineup.lineup,
-      cambios_sugeridos: optimizedLineup.changes,
-      explicaciones: optimizedLineup.explanations
+      cambios_sugeridos: optimizedLineup.changes || [],
+      explicaciones: optimizedLineup.explanations || [],
+      success: true,
+      roster_count: playersWithMatchups.length,
+      optimized_count: optimizedLineup.lineup.length
     });
 
   } catch (error) {
-    console.error('Error optimizing lineup:', error);
+    console.error('Critical error optimizing lineup:', error);
+    
+    // Último recurso: respuesta mínima válida
     res.status(500).json({
-      error: 'Error interno del servidor al optimizar lineup'
+      error: 'Error interno del servidor al optimizar lineup',
+      success: false,
+      lineup_optimizado: [],
+      cambios_sugeridos: [],
+      explicaciones: [{
+        player_id: 'error',
+        player_name: 'Sistema',
+        explanation: 'Ocurrió un error procesando tu solicitud. Por favor intenta nuevamente.'
+      }]
     });
   }
 });
 
 async function getPlayerProjections(roster, scoringSettings) {
-  return roster.map(player => {
-    const basePoints = Math.random() * 25 + 5;
-    
-    // Aplicar modificadores de scoring si están disponibles
-    let adjustedPoints = basePoints;
-    if (scoringSettings) {
-      // Ajustar puntos basado en el tipo de scoring (PPR, medio PPR, standard)
-      if (scoringSettings.pprValue > 0 && (player.position === 'WR' || player.position === 'RB' || player.position === 'TE')) {
-        // Los receptores obtienen más puntos en ligas PPR
-        adjustedPoints += Math.random() * scoringSettings.pprValue * 8; // Simular recepciones
-      }
+  try {
+    if (!roster || !Array.isArray(roster)) {
+      throw new Error('Invalid roster data');
     }
-    
-    return {
-      ...player,
-      projection: {
-        points: adjustedPoints,
-        confidence: Math.random() * 100,
-        ceiling: adjustedPoints + Math.random() * 10,
-        floor: Math.max(0, adjustedPoints - Math.random() * 8),
-        scoringType: scoringSettings?.scoringType || 'standard'
+
+    return roster.map(player => {
+      try {
+        const basePoints = Math.random() * 25 + 5;
+        
+        // Aplicar modificadores de scoring si están disponibles
+        let adjustedPoints = basePoints;
+        if (scoringSettings && scoringSettings.pprValue) {
+          // Ajustar puntos basado en el tipo de scoring (PPR, medio PPR, standard)
+          const playerPos = player.position || player.display_position || '';
+          if (scoringSettings.pprValue > 0 && ['WR', 'RB', 'TE'].includes(playerPos)) {
+            // Los receptores obtienen más puntos en ligas PPR
+            adjustedPoints += Math.random() * scoringSettings.pprValue * 8; // Simular recepciones
+          }
+        }
+        
+        return {
+          ...player,
+          player_id: player.player_id || player.id || `player_${Math.random()}`,
+          name: player.name || player.player_name || 'Unknown Player',
+          position: player.position || player.display_position || 'FLEX',
+          projection: {
+            points: Math.max(0, adjustedPoints),
+            confidence: Math.random() * 100,
+            ceiling: adjustedPoints + Math.random() * 10,
+            floor: Math.max(0, adjustedPoints - Math.random() * 8),
+            scoringType: scoringSettings?.scoringType || 'standard'
+          }
+        };
+      } catch (playerError) {
+        console.error('Error processing player:', playerError.message);
+        // Return a safe fallback for this player
+        return {
+          ...player,
+          player_id: player.player_id || player.id || `player_${Math.random()}`,
+          name: player.name || 'Unknown Player',
+          position: player.position || 'FLEX',
+          projection: {
+            points: 10,
+            confidence: 50,
+            ceiling: 15,
+            floor: 5,
+            scoringType: 'standard'
+          }
+        };
       }
-    };
-  });
+    });
+  } catch (error) {
+    console.error('Error in getPlayerProjections:', error.message);
+    throw error;
+  }
 }
 
 async function analyzeMatchups(players) {
-  return players.map(player => ({
-    ...player,
-    matchup: {
-      difficulty: ['Easy', 'Medium', 'Hard'][Math.floor(Math.random() * 3)],
-      opponent_rank: Math.floor(Math.random() * 32) + 1,
-      weather_impact: Math.random() > 0.7 ? 'Negative' : 'Neutral',
-      injury_status: ['Healthy', 'Questionable', 'Doubtful'][Math.floor(Math.random() * 3)]
+  try {
+    if (!players || !Array.isArray(players)) {
+      throw new Error('Invalid players data for matchup analysis');
     }
-  }));
+
+    return players.map(player => {
+      try {
+        return {
+          ...player,
+          matchup: {
+            difficulty: ['Easy', 'Medium', 'Hard'][Math.floor(Math.random() * 3)],
+            opponent_rank: Math.floor(Math.random() * 32) + 1,
+            weather_impact: Math.random() > 0.7 ? 'Negative' : 'Neutral',
+            injury_status: ['Healthy', 'Questionable', 'Doubtful'][Math.floor(Math.random() * 3)]
+          }
+        };
+      } catch (playerError) {
+        console.error('Error analyzing matchup for player:', playerError.message);
+        return {
+          ...player,
+          matchup: {
+            difficulty: 'Medium',
+            opponent_rank: 16,
+            weather_impact: 'Neutral',
+            injury_status: 'Healthy'
+          }
+        };
+      }
+    });
+  } catch (error) {
+    console.error('Error in analyzeMatchups:', error.message);
+    throw error;
+  }
 }
 
 async function generateOptimizedLineup(players, rosterPositions, leagueSettings) {
@@ -174,11 +279,12 @@ async function generateOptimizedLineup(players, rosterPositions, leagueSettings)
 }
 
 // Helper functions
-async function getAccessTokenFromSession(sessionId) {
+async function getAccessTokenFromSession(sessionId, req) {
   try {
-    // Import session store from server
-    const { sessionStore } = await import('../../server.js');
-    const session = sessionStore.get(sessionId);
+    // Get tokenStore from Express app (set in server.js)
+    const app = req?.app;
+    const tokenStore = app?.get('tokenStore') || new Map();
+    const session = tokenStore.get(sessionId);
     return session?.access_token || null;
   } catch (error) {
     console.error('Error getting access token from session:', error);
