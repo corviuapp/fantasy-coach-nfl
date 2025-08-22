@@ -72,55 +72,20 @@ function App() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Detectar callback de Yahoo
   useEffect(() => {
-    // Verificar hash params
-    const hash = window.location.hash.substring(1);
-    if (hash) {
-      const hashParams = new URLSearchParams(hash);
-      const yahooSuccess = hashParams.get('yahoo-success');
-      const yahooError = hashParams.get('yahoo-error');
-      
-      if (yahooSuccess === 'true') {
-        console.log('Yahoo connected successfully!');
-        // Limpiar el hash
-        window.location.hash = '';
-        
-        // Si no hay usuario, usar el demo automáticamente
-        if (!user && showLogin) {
-          setUser({ id: 1, username: 'demo', email: 'demo@example.com' });
-          setShowLogin(false);
-        }
-        
-        // Mostrar mensaje de éxito
-        setTimeout(() => {
-          alert('✅ Yahoo Fantasy connected successfully! Your leagues have been imported.');
-        }, 500);
-      }
-      
-      if (yahooError) {
-        console.error('Yahoo connection error:', yahooError);
-        // Limpiar el hash
-        window.location.hash = '';
-        
-        // Si no hay usuario, usar el demo automáticamente
-        if (!user && showLogin) {
-          setUser({ id: 1, username: 'demo', email: 'demo@example.com' });
-          setShowLogin(false);
-        }
-        
-        setTimeout(() => {
-          if (yahooError === 'token_failed') {
-            alert('❌ Error: Could not get access token from Yahoo. Please check your Client Secret in the backend .env file.');
-          } else if (yahooError === 'no_code') {
-            alert('❌ Error: No authorization code received from Yahoo.');
-          } else {
-            alert('❌ Error connecting to Yahoo: ' + yahooError);
-          }
-        }, 500);
-      }
+    // Verificar si viene de Yahoo OAuth
+    const hash = window.location.hash;
+    if (hash === '#yahoo-success') {
+      setShowLogin(false);
+      // Limpiar el hash
+      window.location.hash = '';
+      // Mostrar mensaje de éxito o navegar al dashboard
+      alert('Yahoo connected successfully!');
+    } else if (hash === '#yahoo-error') {
+      alert('Yahoo connection failed. Please try again.');
+      window.location.hash = '';
     }
-  }, []); // Solo ejecutar una vez al cargar
+  }, []);
 
   const styles = {
     container: {
