@@ -144,10 +144,10 @@ const AskCoach = () => {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-60px)] bg-white relative">
+    <div className="flex flex-col h-[calc(100vh-200px)] bg-white">
 
       {/* Messages Area */}
-      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-2 bg-gray-50">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 bg-gray-50">
         {messages.length === 0 && (
           <div className="text-center text-gray-500 mt-2">
             <span className="text-sm">💬 Ask coach</span>
@@ -183,20 +183,20 @@ const AskCoach = () => {
       </div>
 
       {/* Input Area */}
-      <div className="sticky bottom-0 bg-white p-2 border-t flex-shrink-0">
-        <div className="flex gap-1 items-end">
+      <div className="border-t bg-white p-4 flex-shrink-0">
+        <div className="flex gap-2 items-end">
           <input
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="Ask coach..."
-            className="flex-1 p-2 text-sm border rounded focus:outline-none"
+            className="flex-1 p-3 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             disabled={isLoading || isTyping}
           />
           <button
             onClick={handleSendMessage}
             disabled={!inputValue.trim() || isLoading || isTyping}
-            className="bg-blue-500 text-white p-2 rounded text-sm"
+            className="bg-blue-500 text-white p-3 rounded-lg text-sm hover:bg-blue-600 disabled:opacity-50"
           >
             ➤
           </button>
