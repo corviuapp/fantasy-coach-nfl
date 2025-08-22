@@ -63,23 +63,9 @@ export class YahooService {
 }
 
 async getUserLeagues(accessToken) {
-  console.log('Searching for NFL leagues (including 2025 season)...\\n');
-  
-  // NFL game keys por año - AGREGAMOS 2025
-  const nflSeasons = [
-    { year: '2025', key: '460' },  // <-- Estimado, puede variar
-    { year: '2024', key: '449' },
-    { year: '2023', key: '423' },
-    { year: '2022', key: '414' }
-  ];
-  
-  const results = {};
-  
-  // Primero intentar obtener las ligas actuales (2025)
   try {
-    console.log('1. Checking current season (2025) leagues...');
-    const currentResponse = await axios.get(
-      'https://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1/games;game_codes=nfl;seasons=2025/leagues?format=json',
+    const response = await fetch(
+      'https://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1/games;game_keys=nfl/leagues?format=json',
       {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -88,73 +74,13 @@ async getUserLeagues(accessToken) {
       }
     );
     
-    const leagues = currentResponse.data?.fantasy_content?.users?.[0]?.user?.[1]?.games?.[0]?.game?.[1]?.leagues;
+    const data = await response.json();
+    console.log('Yahoo API Response:', JSON.stringify(data, null, 2));
     
-    if (leagues && leagues.length > 0) {
-      console.log(`✅ Found ${leagues.length} leagues in 2025!`);
-      results.current2025 = currentResponse.data;
-    } else {
-      console.log('📭 No leagues found for 2025');
-    }
-    
+    return data;
   } catch (error) {
-    console.log('❌ 2025 season error:', error.response?.status);
+    console.error('Error fetching leagues:', error);
+    throw error;
   }
-  
-  // Buscar sin filtro de temporada (debería traer las activas)
-  try {
-    console.log('\\n2. Getting current/active leagues (no year filter)...');
-    const activeResponse = await axios.get(
-      'https://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1/games;is_available=1;game_codes=nfl/leagues?format=json',
-      {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Accept': 'application/json'
-        }
-      }
-    );
-    
-    results.activeLeagues = activeResponse.data;
-    console.log('Active leagues response received');
-    
-  } catch (error) {
-    console.log('❌ Active leagues error:', error.response?.status);
-  }
-  
-  // Probar cada temporada
-  for (const season of nflSeasons) {
-    try {
-      console.log(`\\n3. Checking NFL ${season.year}...`);
-      
-      const response = await axios.get(
-        `https://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1/games;seasons=${season.year};game_codes=nfl/leagues?format=json`,
-        {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Accept': 'application/json'
-          }
-        }
-      );
-      
-      const data = response.data?.fantasy_content?.users?.[0]?.user?.[1]?.games;
-      
-      if (data && data.length > 0) {
-        console.log(`✅ Found data for ${season.year}`);
-        results[`season_${season.year}`] = data;
-      } else {
-        console.log(`📭 No data for ${season.year}`);
-      }
-      
-    } catch (error) {
-      if (error.response?.status === 404) {
-        console.log(`⚠️ ${season.year} season not available`);
-      } else {
-        console.log(`❌ ${season.year} error: ${error.response?.status}`);
-      }
-    }
-  }
-  
-  console.log('\\n=== SEARCH COMPLETE ===');
-  return results;
 }
 }

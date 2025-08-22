@@ -144,6 +144,22 @@ app.get('/auth/yahoo/callback', (req, res) => {
   }
 });
 
+app.get('/api/yahoo/test-leagues', async (req, res) => {
+  try {
+    const { access_token } = req.query;
+    
+    if (!access_token) {
+      return res.status(400).json({ error: 'Access token is required' });
+    }
+    
+    const leagues = await yahoo.getUserLeagues(access_token);
+    res.json(leagues);
+  } catch (error) {
+    console.error('Error fetching Yahoo leagues:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.use('/api/auth/yahoo', yahooRoutes);
 app.use('/api/expert-consensus', expertRoutes);
 app.use('/api/coach', coachRoutes);
