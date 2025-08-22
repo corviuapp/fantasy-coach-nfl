@@ -144,6 +144,9 @@ app.get('/auth/yahoo/callback', async (req, res) => {
 
     // 1) Intercambiar el código por un access token
     const tokens = await yahoo.getAccessToken(code);
+    console.log('Token exchange successful!');
+    console.log('Access token received:', tokens.access_token ? 'YES' : 'NO');
+    console.log('Refresh token received:', tokens.refresh_token ? 'YES' : 'NO');
     
     // 2) Generar un sessionId único
     const sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
@@ -156,9 +159,10 @@ app.get('/auth/yahoo/callback', async (req, res) => {
     });
     
     // 4) Redirigir al frontend con el sessionId como parámetro
+    console.log('Redirecting to frontend with session:', sessionId);
     res.redirect(`https://frontend-production-f269.up.railway.app#yahoo-success?session=${sessionId}`);
   } catch (error) {
-    console.error('Yahoo auth error:', error);
+    console.error('Error in callback:', error.message, error.stack);
     res.redirect('https://frontend-production-f269.up.railway.app#yahoo-error');
   }
 });
