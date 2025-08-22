@@ -23,6 +23,7 @@ function App() {
     const [selectedLeague, setSelectedLeague] = useState('');
     const [roster, setRoster] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
 
     const sessionId = localStorage.getItem('yahoo_sessionId');
     const availableLeagues = leagues.filter(league => league.draft_status === 'postdraft');
@@ -34,49 +35,27 @@ function App() {
       try {
         const response = await fetch(`${API_URL}/api/yahoo/roster?sessionId=${sessionId}&leagueKey=${leagueKey}`);
         const data = await response.json();
+        console.log('Raw roster data:', JSON.stringify(data, null, 2));
         
-        if (data.fantasy_content && data.fantasy_content.team) {
-          const rosterData = data.fantasy_content.team[1].roster;
-          const starters = [];
-          const bench = [];
-          
-          // Iterate over numeric keys in roster (0, 1, 2, etc)
-          for (const key in rosterData) {
-            if (!isNaN(key)) {
-              const playerData = rosterData[key].players[0].player;
-              const playerInfo = playerData[1];
-              const selectedPosition = playerData[1].selected_position[1].position;
-              
-              const player = {
-                name: playerInfo.name.full,
-                team: playerInfo.editorial_team_abbr,
-                position: playerInfo.display_position,
-                status: playerInfo.status || null
-              };
-              
-              // Separate into starters and bench based on position
-              if (selectedPosition === 'BN') {
-                bench.push(player);
-              } else {
-                starters.push(player);
-              }
-            }
+        try {
+          const team = data?.fantasy_content?.team;
+          console.log('Team structure:', team);
+          if (team && team[1] && team[1].roster) {
+            console.log('Roster exists:', team[1].roster);
+            console.log('First player slot:', team[1].roster['0']);
           }
-          
-          // Combine arrays for backward compatibility with existing code
-          const playersList = [...starters, ...bench].map((player, index) => ({
-            ...player,
-            player_id: index + 1, // Add player_id for existing display code
-            selected_position: starters.includes(player) ? player.position : 'BN'
-          }));
-          
-          setRoster(playersList);
+          setRoster(data);
+          setLoading(false);
+        } catch (err) {
+          console.error('Processing error:', err);
+          setError('Error processing roster');
+          setLoading(false);
         }
       } catch (err) {
         console.error('Error fetching roster:', err);
         alert('Error fetching roster. Please try again.');
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     const handleLeagueSelect = (e) => {
