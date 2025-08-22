@@ -1,4 +1,4 @@
-const express = require('express');
+import express from 'express';
 import Groq from 'groq-sdk';
 const router = express.Router();
 
@@ -104,4 +104,4 @@ async function generateOptimizedLineup(players) {
   };
 }
 
-module.exports = router;export default router;
+export default router;
