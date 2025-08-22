@@ -271,20 +271,26 @@ function App() {
   }
 
   return (
-    <div className="h-screen overflow-hidden flex flex-col">
-      {/* Navigation only - no header */}
-      <div style={{
-        background: 'white',
-        borderBottom: '1px solid #e0e0e0',
-        display: 'flex',
-        gap: '5px',
-        transition: 'all 0.3s ease',
-        flexShrink: 0,
-        overflowX: 'auto',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '0 10px'
-      }}>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-3 sm:py-4 lg:py-6 flex justify-between items-center">
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-800">
+          🏈 Fantasy Coach NFL
+        </h1>
+        <button 
+          onClick={() => {
+            setShowLogin(true);
+            setUser(null);
+          }}
+          className="px-3 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50 transition-colors"
+        >
+          🚪 Logout
+        </button>
+      </div>
+
+      {/* Navigation */}
+      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-7 sm:flex sm:space-x-8 max-w-7xl mx-auto">
         {['dashboard', 'draft', 'lineup', 'waivers', 'coach', 'experts', 'rules'].map(tab => (
           <button
             key={tab}
@@ -292,87 +298,57 @@ function App() {
               setActiveTab(tab);
               setMobileMenuOpen(false);
             }}
-            style={{
-              padding: '2px 4px',
-              background: activeTab === tab ? '#667eea' : 'none',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '10px',
-              color: activeTab === tab ? 'white' : '#666',
-              transition: 'all 0.2s ease',
-              whiteSpace: 'nowrap',
-              minWidth: 'fit-content'
-            }}
+            className={`px-2 py-1 text-xs sm:px-4 sm:py-2 sm:text-base font-medium border-b-2 transition-all duration-200 whitespace-nowrap ${
+              activeTab === tab 
+                ? 'border-indigo-500 text-indigo-600' 
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
           >
-            {tab === 'dashboard' ? 'Dash' : 
-             tab === 'experts' ? 'Exp' :
+            {tab === 'dashboard' ? 'Dashboard' : 
+             tab === 'experts' ? 'Experts' :
              tab === 'rules' ? 'Rules' :
              tab.charAt(0).toUpperCase() + tab.slice(1)}
           </button>
         ))}
-        <button 
-          onClick={() => {
-            setShowLogin(true);
-            setUser(null);
-          }}
-          style={{ 
-            background: 'none', 
-            border: '1px solid #ddd', 
-            padding: '2px 6px', 
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontSize: '10px'
-          }}
-        >
-          🚪
-        </button>
+        </div>
       </div>
 
       {/* Content */}
-      <div className="h-[calc(100vh-40px)] overflow-y-auto p-2">
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {activeTab === 'dashboard' && (
           <>
-            <h2>Dashboard</h2>
-            <div style={styles.grid}>
-              <div style={styles.statCard}>
-                <div style={{ fontSize: '36px', fontWeight: 'bold', color: '#667eea' }}>3rd</div>
-                <div style={{ color: '#666', marginTop: '5px' }}>Current Standing</div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+              <div className="bg-white rounded-lg p-3 sm:p-6 shadow-sm border border-gray-200 text-center">
+                <div className="text-2xl sm:text-3xl font-bold text-indigo-600">3rd</div>
+                <div className="text-gray-600 text-sm sm:text-base mt-1">Current Standing</div>
               </div>
-              <div style={styles.statCard}>
-                <div style={{ fontSize: '36px', fontWeight: 'bold', color: '#22c55e' }}>71%</div>
-                <div style={{ color: '#666', marginTop: '5px' }}>Win Rate</div>
+              <div className="bg-white rounded-lg p-3 sm:p-6 shadow-sm border border-gray-200 text-center">
+                <div className="text-2xl sm:text-3xl font-bold text-green-600">71%</div>
+                <div className="text-gray-600 text-sm sm:text-base mt-1">Win Rate</div>
               </div>
-              <div style={styles.statCard}>
-                <div style={{ fontSize: '36px', fontWeight: 'bold', color: '#3b82f6' }}>1,247</div>
-                <div style={{ color: '#666', marginTop: '5px' }}>Points For</div>
+              <div className="bg-white rounded-lg p-3 sm:p-6 shadow-sm border border-gray-200 text-center">
+                <div className="text-2xl sm:text-3xl font-bold text-blue-600">1,247</div>
+                <div className="text-gray-600 text-sm sm:text-base mt-1">Points For</div>
               </div>
-              <div style={styles.statCard}>
-                <div style={{ fontSize: '36px', fontWeight: 'bold', color: '#a855f7' }}>$67</div>
-                <div style={{ color: '#666', marginTop: '5px' }}>FAAB Left</div>
+              <div className="bg-white rounded-lg p-3 sm:p-6 shadow-sm border border-gray-200 text-center">
+                <div className="text-2xl sm:text-3xl font-bold text-purple-600">$67</div>
+                <div className="text-gray-600 text-sm sm:text-base mt-1">FAAB Left</div>
               </div>
             </div>
 
-            <div style={{...styles.card, background: '#fef3c7', border: '1px solid #fde68a'}}>
-              <h3 style={{ margin: '0 0 10px 0', color: '#92400e' }}>⚠️ Action Required</h3>
-              <ul style={{ margin: 0, paddingLeft: '20px', color: '#92400e' }}>
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 sm:p-6 mb-6">
+              <h3 className="text-lg font-semibold text-yellow-800 mb-3">⚠️ Action Required</h3>
+              <ul className="list-disc list-inside text-yellow-800 space-y-1">
                 <li>Davante Adams is Questionable - Check lineup</li>
                 <li>Waivers process tonight at 3 AM</li>
                 <li>Trade deadline in 2 weeks</li>
               </ul>
             </div>
 
-            {/* BOTÓN DE YAHOO */}
-            <div style={{
-              background: '#7c3aed',
-              color: 'white',
-              padding: '20px',
-              borderRadius: '12px',
-              marginTop: '20px',
-              textAlign: 'center'
-            }}>
-              <h3 style={{ margin: '0 0 10px 0' }}>Connect Yahoo Fantasy</h3>
-              <p style={{ margin: '0 0 15px 0', opacity: 0.9 }}>
+            <div className="bg-purple-600 text-white p-4 sm:p-6 rounded-lg text-center">
+              <h3 className="text-lg font-semibold mb-2">Connect Yahoo Fantasy</h3>
+              <p className="opacity-90 mb-4">
                 Import your real leagues from Yahoo
               </p>
               <button
@@ -393,30 +369,20 @@ function App() {
                     alert('Error connecting to Yahoo. Check console for details.');
                   }
                 }}
-                style={{
-                  background: 'white',
-                  color: '#7c3aed',
-                  padding: '10px 30px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  fontSize: '16px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer'
-                }}
+                className="bg-white text-purple-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
               >
                 Connect Yahoo Account
               </button>
             </div>
-            {/* FIN DEL BOTÓN DE YAHOO */}
           </>
         )}
 
         {activeTab === 'draft' && (
           <>
-            <h2>Draft Recommendations</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Draft Recommendations</h2>
             {draftRecs.length > 0 ? (
               draftRecs.map((rec, idx) => (
-                <div key={idx} style={styles.card}>
+                <div key={idx} className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200 mb-4">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
                     <div>
                       <h3 style={{ margin: '0 0 5px 0' }}>
@@ -431,7 +397,7 @@ function App() {
                 </div>
               ))
             ) : (
-              <div style={styles.card}>
+              <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200">
                 <p>Loading recommendations...</p>
               </div>
             )}
@@ -440,9 +406,9 @@ function App() {
 
         {activeTab === 'lineup' && (
           <>
-            <h2>Lineup Optimizer</h2>
-            <div style={styles.card}>
-              <p style={{ textAlign: 'center', color: '#666', padding: '40px 0' }}>
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Lineup Optimizer</h2>
+            <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200">
+              <p className="text-center text-gray-600 py-10">
                 🔧 Connect your league to get lineup recommendations!
               </p>
             </div>
@@ -451,9 +417,9 @@ function App() {
 
         {activeTab === 'waivers' && (
           <>
-            <h2>Waiver Wire</h2>
-            <div style={styles.card}>
-              <p style={{ textAlign: 'center', color: '#666', padding: '40px 0' }}>
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Waiver Wire</h2>
+            <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200">
+              <p className="text-center text-gray-600 py-10">
                 💎 Connect your league to see waiver recommendations!
               </p>
             </div>
@@ -465,6 +431,7 @@ function App() {
         {activeTab === 'experts' && <ExpertConsensus />}
 
         {activeTab === 'rules' && <RulesExplainer />}
+        </div>
       </div>
     </div>
   );
