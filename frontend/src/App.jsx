@@ -60,21 +60,19 @@ function App() {
       const response = await fetch(`${API_URL}/api/yahoo/leagues?sessionId=${sessionId}`);
       const data = await response.json();
       
-      if (data.fantasy_content && data.fantasy_content.users && data.fantasy_content.users[0] && 
-          data.fantasy_content.users[0].user && data.fantasy_content.users[0].user[1] &&
-          data.fantasy_content.users[0].user[1].games && data.fantasy_content.users[0].user[1].games[0] &&
-          data.fantasy_content.users[0].user[1].games[0].game && data.fantasy_content.users[0].user[1].games[0].game[1] &&
-          data.fantasy_content.users[0].user[1].games[0].game[1].leagues) {
-        
-        const leaguesData = data.fantasy_content.users[0].user[1].games[0].game[1].leagues;
-        const mappedLeagues = leaguesData.map(league => ({
-          league_key: league.league[0].league_key,
-          name: league.league[0].name,
-          num_teams: league.league[0].num_teams,
-          draft_status: league.league[0].draft_status
-        }));
-        
-        setLeagues(mappedLeagues);
+      if (data.fantasy_content) {
+        const leaguesData = data.fantasy_content.users?.[0]?.user?.[1]?.games?.[0]?.game?.[1]?.leagues;
+        if (leaguesData) {
+          const mappedLeagues = leaguesData.map(league => ({
+            id: league.league[0].league_key,
+            name: league.league[0].name,
+            teams: league.league[0].num_teams,
+            platform: 'yahoo',
+            draft_status: league.league[0].draft_status
+          }));
+          
+          setLeagues(mappedLeagues);
+        }
       }
     } catch (err) {
       console.error('Error fetching leagues:', err);
@@ -117,12 +115,16 @@ function App() {
       return;
     }
     
-    if (hash === '#yahoo-success') {
-      setShowLogin(false);
-      // Limpiar el hash
+    if (hash.includes('yahoo-success')) {
+      const urlParams = new URLSearchParams(hash.split('?')[1]);
+      const sessionId = urlParams.get('sessionId');
+      if (sessionId) {
+        console.log('Yahoo session detected:', sessionId);
+        localStorage.setItem('yahoo_sessionId', sessionId);
+        setShowLogin(false);
+        fetchLeagues(sessionId);
+      }
       window.location.hash = '';
-      // Mostrar mensaje de éxito o navegar al dashboard
-      alert('Yahoo connected successfully!');
     } else if (hash === '#yahoo-error') {
       alert('Yahoo connection failed. Please try again.');
       window.location.hash = '';
