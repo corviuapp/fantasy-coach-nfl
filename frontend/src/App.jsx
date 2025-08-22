@@ -38,7 +38,7 @@ function App() {
         setError('Invalid credentials. Use demo@example.com / demo123');
       }
     } catch (err) {
-      setError('Cannot connect to backend. Make sure it\'s running on port 3000');
+      setError(`Cannot connect to backend. Make sure it's running on ${API_URL}`);
     }
     
     setLoading(false);
