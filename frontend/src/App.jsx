@@ -199,27 +199,27 @@ function App() {
                 </div>
 
                 {/* Roster Display */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
                   {/* Starting Lineup */}
-                  <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200">
-                    <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                  <div className="bg-white rounded-lg p-2 shadow-sm border border-gray-200">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2 flex items-center">
                       <span className="w-3 h-3 bg-green-500 rounded-full mr-2"></span>
                       Starting Lineup ({startingLineup.length})
                     </h3>
-                    <div className="space-y-1">
+                    <div className="space-y-0.5">
                       {startingLineup.map((player) => {
                         const recommendation = getPlayerRecommendation(player);
                         const isRecommendedSit = recommendation?.action === 'sit';
                         const isRecommendedStart = recommendation?.action === 'start';
                         return (
-                        <div key={player.player_id} className={`border rounded-md p-2 ${
+                        <div key={player.player_id} className={`border rounded-md p-1 ${
                           isRecommendedSit ? 'border-red-300 bg-red-50' :
                           isRecommendedStart ? 'border-green-300 bg-green-50' :
                           'border-gray-200'
                         }`}>
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
-                              <h4 className="font-medium text-sm text-gray-900">{player.name}</h4>
+                              <h4 className="font-medium text-xs text-gray-900">{player.name}</h4>
                               <div className="text-xs text-gray-600 mt-0.5">
                                 <span className="font-medium">{player.position}</span> - {player.team}
                                 {player.selected_position !== player.position && (
@@ -230,8 +230,8 @@ function App() {
                                 <div className="mt-0.5">
                                   <span className={`text-xs px-1 py-0.5 rounded-full ${
                                     player.status === 'Q' ? 'bg-yellow-100 text-yellow-800' :
-                                    player.status === 'O' ? 'bg-red-100 text-red-800' :
-                                    player.status === 'IR' ? 'bg-red-100 text-red-800' :
+                                    player.status === 'O' ? 'bg-red-50 text-red-600' :
+                                    player.status === 'IR' ? 'bg-red-50 text-red-600' :
                                     'bg-gray-100 text-gray-800'
                                   }`}>
                                     {player.status === 'Q' ? 'Questionable' :
@@ -244,8 +244,8 @@ function App() {
                               {recommendation && (
                                 <div className="mt-1">
                                   <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
-                                    recommendation.action === 'sit' ? 'bg-red-100 text-red-800' :
-                                    recommendation.action === 'start' ? 'bg-green-100 text-green-800' :
+                                    recommendation.action === 'sit' ? 'bg-red-50 text-red-600' :
+                                    recommendation.action === 'start' ? 'bg-green-50 text-green-600' :
                                     'bg-blue-100 text-blue-800'
                                   }`}>
                                     {recommendation.action === 'sit' ? 'Recommended SIT' :
@@ -271,25 +271,25 @@ function App() {
                   </div>
 
                   {/* Bench */}
-                  <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200">
-                    <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                  <div className="bg-white rounded-lg p-2 shadow-sm border border-gray-200">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2 flex items-center">
                       <span className="w-3 h-3 bg-gray-400 rounded-full mr-2"></span>
                       Bench ({bench.length})
                     </h3>
-                    <div className="space-y-1">
+                    <div className="space-y-0.5">
                       {bench.map((player) => {
                         const recommendation = getPlayerRecommendation(player);
                         const isRecommendedStart = recommendation?.action === 'start';
                         const isRecommendedSit = recommendation?.action === 'sit';
                         return (
-                        <div key={player.player_id} className={`border rounded-md p-2 ${
+                        <div key={player.player_id} className={`border rounded-md p-1 ${
                           isRecommendedStart ? 'border-green-300 bg-green-50' :
                           isRecommendedSit ? 'border-red-300 bg-red-50' :
                           'border-gray-200'
                         }`}>
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
-                              <h4 className="font-medium text-sm text-gray-900">{player.name}</h4>
+                              <h4 className="font-medium text-xs text-gray-900">{player.name}</h4>
                               <div className="text-xs text-gray-600 mt-0.5">
                                 <span className="font-medium">{player.position}</span> - {player.team}
                               </div>
@@ -297,8 +297,8 @@ function App() {
                                 <div className="mt-0.5">
                                   <span className={`text-xs px-1 py-0.5 rounded-full ${
                                     player.status === 'Q' ? 'bg-yellow-100 text-yellow-800' :
-                                    player.status === 'O' ? 'bg-red-100 text-red-800' :
-                                    player.status === 'IR' ? 'bg-red-100 text-red-800' :
+                                    player.status === 'O' ? 'bg-red-50 text-red-600' :
+                                    player.status === 'IR' ? 'bg-red-50 text-red-600' :
                                     'bg-gray-100 text-gray-800'
                                   }`}>
                                     {player.status === 'Q' ? 'Questionable' :
@@ -311,8 +311,8 @@ function App() {
                               {recommendation && (
                                 <div className="mt-1">
                                   <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
-                                    recommendation.action === 'sit' ? 'bg-red-100 text-red-800' :
-                                    recommendation.action === 'start' ? 'bg-green-100 text-green-800' :
+                                    recommendation.action === 'sit' ? 'bg-red-50 text-red-600' :
+                                    recommendation.action === 'start' ? 'bg-green-50 text-green-600' :
                                     'bg-blue-100 text-blue-800'
                                   }`}>
                                     {recommendation.action === 'sit' ? 'Recommended SIT' :
@@ -357,8 +357,8 @@ function App() {
                                   </div>
                                   <div className="text-sm text-gray-600 mt-1">
                                     <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${
-                                      cambio.action === 'start' ? 'bg-green-100 text-green-800' :
-                                      cambio.action === 'sit' ? 'bg-red-100 text-red-800' :
+                                      cambio.action === 'start' ? 'bg-green-50 text-green-600' :
+                                      cambio.action === 'sit' ? 'bg-red-50 text-red-600' :
                                       'bg-blue-100 text-blue-800'
                                     }`}>
                                       {cambio.action === 'start' ? 'START' :
@@ -835,7 +835,7 @@ function App() {
                             <span>Draft:</span>
                             <span className={`font-medium px-2 py-1 rounded-full text-xs ${
                               league.draft_status === 'postdraft' 
-                                ? 'bg-green-100 text-green-800' 
+                                ? 'bg-green-50 text-green-600' 
                                 : 'bg-yellow-100 text-yellow-800'
                             }`}>
                               {league.draft_status === 'postdraft' ? 'Complete' : 'Pending'}
