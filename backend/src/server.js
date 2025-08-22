@@ -37,35 +37,27 @@ app.get('/api/test', (req, res) => {
   });
 });
 
-/*
 app.post('/api/auth/login', (req, res) => {
   const { email, password } = req.body;
   
-  try {
-    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
-    
-    if (user && password === 'demo123') {
-      res.json({
-        success: true,
-        user: { 
-          email: user.email, 
-          username: user.username,
-          id: user.id 
-        },
-        token: 'fake-jwt-token-for-testing'
-      });
-    } else {
-      res.status(401).json({ 
-        success: false,
-        error: 'Invalid credentials' 
-      });
-    }
-  } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ error: 'Database error' });
+  // Login funcional sin base de datos
+  if (email === 'demo@example.com' && password === 'demo123') {
+    res.json({
+      success: true,
+      user: { 
+        email: 'demo@example.com', 
+        username: 'Demo User',
+        id: 1
+      },
+      token: 'demo-token-123'
+    });
+  } else {
+    res.status(401).json({ 
+      success: false,
+      error: 'Invalid credentials' 
+    });
   }
 });
-*/
 
 /*
 app.get('/api/recommendations/draft', (req, res) => {
