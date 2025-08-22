@@ -37,36 +37,78 @@ function App() {
         const data = await response.json();
         console.log('Raw roster data:', JSON.stringify(data, null, 2));
         
-        const team = data?.fantasy_content?.team;
-        if (team && team[1] && team[1].roster && team[1].roster[0] && team[1].roster[0].players) {
-          const playersData = team[1].roster[0].players;
-          const players = [];
+        try {
+          const team = data?.fantasy_content?.team;
+          console.log('Team structure:', team);
           
-          for (let i = 0; i < playersData.count; i++) {
-            const playerObj = playersData[i];
-            if (playerObj && playerObj.player) {
-              const playerInfo = playerObj.player[0];
-              const playerMeta = playerObj.player[1];
-              
-              const player = {
-                player_id: playerInfo[0]?.player_id || i,
-                name: playerInfo[2]?.name?.full || 'Unknown',
-                position: playerInfo[4]?.display_position || 'POS',
-                team: playerInfo[6]?.editorial_team_abbr || 'TEAM',
-                selected_position: playerMeta?.selected_position?.[1]?.position || 'BN'
-              };
-              
-              players.push(player);
-              console.log('Added player:', player.name);
+          if (team && team[1] && team[1].roster) {
+            const rosterData = team[1].roster;
+            console.log('Raw roster data:', rosterData);
+            
+            const players = [];
+            
+            // Iterate over roster keys (0, 1, 2, etc)
+            for (const key in rosterData) {
+              if (key !== 'count' && rosterData[key] && rosterData[key].players) {
+                const playerSlot = rosterData[key].players;
+                console.log(`Player slot ${key}:`, playerSlot);
+                
+                if (playerSlot['0'] && playerSlot['0'].player) {
+                  const playerArray = playerSlot['0'].player;
+                  console.log(`Player array for slot ${key}:`, playerArray);
+                  
+                  if (Array.isArray(playerArray) && playerArray.length >= 2) {
+                    const playerData = playerArray[0];
+                    const selectedPosition = playerArray[1]?.selected_position;
+                    
+                    // Find the player name in the playerData array
+                    let playerName = '';
+                    let playerPosition = '';
+                    let playerTeam = '';
+                    let playerId = '';
+                    let playerStatus = '';
+                    
+                    if (Array.isArray(playerData)) {
+                      for (const item of playerData) {
+                        if (item.name) {
+                          playerName = item.name.full || item.name;
+                        }
+                        if (item.display_position) {
+                          playerPosition = item.display_position;
+                        }
+                        if (item.editorial_team_abbr) {
+                          playerTeam = item.editorial_team_abbr;
+                        }
+                        if (item.player_id) {
+                          playerId = item.player_id;
+                        }
+                        if (item.status) {
+                          playerStatus = item.status;
+                        }
+                      }
+                    }
+                    
+                    if (playerName) {
+                      players.push({
+                        player_id: playerId,
+                        name: playerName,
+                        position: playerPosition,
+                        team: playerTeam,
+                        status: playerStatus,
+                        selected_position: selectedPosition?.position || 'BN'
+                      });
+                    }
+                  }
+                }
+              }
             }
+            
+            console.log('Processed players:', players);
+            setRoster(players);
+          } else {
+            console.log('No roster found in team structure');
+            setRoster([]);
           }
-          
-          console.log('Total players found:', players.length);
-          setRoster(players);
-        } else {
-          console.log('No roster data found');
-          setRoster([]);
-        }
           setLoading(false);
         } catch (err) {
           console.error('Processing error:', err);
