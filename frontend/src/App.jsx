@@ -61,18 +61,35 @@ function App() {
       const data = await response.json();
       
       if (data.fantasy_content) {
-        const leaguesData = data.fantasy_content.users?.[0]?.user?.[1]?.games?.[0]?.game?.[1]?.leagues;
-        if (leaguesData) {
-          const mappedLeagues = leaguesData.map(league => ({
-            id: league.league[0].league_key,
-            name: league.league[0].name,
-            teams: league.league[0].num_teams,
-            platform: 'yahoo',
-            draft_status: league.league[0].draft_status
-          }));
-          
-          setLeagues(mappedLeagues);
+        const yahooLeagues = [];
+        const users = data.fantasy_content.users;
+        if (users && users['0']) {
+          const user = users['0'].user;
+          if (user && user[1] && user[1].games) {
+            const games = user[1].games;
+            if (games && games['0'] && games['0'].game) {
+              const game = games['0'].game;
+              if (game[1] && game[1].leagues) {
+                const leaguesObj = game[1].leagues;
+                // Iterar sobre las propiedades del objeto (0, 1, 2, 3, count)
+                for (const key in leaguesObj) {
+                  if (key !== 'count' && leaguesObj[key].league) {
+                    const league = leaguesObj[key].league[0];
+                    yahooLeagues.push({
+                      id: league.league_key,
+                      name: league.name,
+                      teams: parseInt(league.num_teams),
+                      platform: 'yahoo',
+                      draft_status: league.draft_status
+                    });
+                  }
+                }
+              }
+            }
+          }
         }
+        console.log('Parsed leagues:', yahooLeagues);
+        setLeagues(yahooLeagues);
       }
     } catch (err) {
       console.error('Error fetching leagues:', err);
