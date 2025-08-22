@@ -6,9 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "postbuild": "echo \"BUILD COMPLETE. Contents of dist:\" && ls -la dist && echo \"Index.html exists?\" && cat dist/index.html | head -20",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "serve -s dist -l ${PORT:-3000}"
+    "start": "echo \"Starting server...\" && echo \"Current directory:\" && pwd && echo \"All files:\" && ls -la && echo \"Dist folder:\" && ls -la dist || echo \"DIST DOES NOT EXIST\" && serve -s dist -l ${PORT:-3000}"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.85.5",
