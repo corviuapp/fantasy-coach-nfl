@@ -211,10 +211,12 @@ function App() {
                         const recommendation = getPlayerRecommendation(player);
                         const isRecommendedSit = recommendation?.action === 'sit';
                         const isRecommendedStart = recommendation?.action === 'start';
+                        const shouldShowStartBadge = showRecommendations && !recommendation;
                         return (
                         <div key={player.player_id} className={`border rounded-md p-1 ${
                           isRecommendedSit ? 'border-red-300 bg-red-50' :
                           isRecommendedStart ? 'border-green-300 bg-green-50' :
+                          shouldShowStartBadge ? 'border-green-300 bg-green-50' :
                           'border-gray-200'
                         }`}>
                           <div className="flex justify-between items-start">
@@ -241,7 +243,7 @@ function App() {
                                   </span>
                                 </div>
                               )}
-                              {recommendation && (
+                              {recommendation ? (
                                 <div className="mt-1">
                                   <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
                                     recommendation.action === 'sit' ? 'bg-red-50 text-red-600' :
@@ -257,6 +259,12 @@ function App() {
                                       {recommendation.reason}
                                     </div>
                                   )}
+                                </div>
+                              ) : shouldShowStartBadge && (
+                                <div className="mt-1">
+                                  <span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-green-50 text-green-600">
+                                    Recommended START
+                                  </span>
                                 </div>
                               )}
                             </div>
@@ -340,16 +348,16 @@ function App() {
 
                 {/* AI Recommendations */}
                 {recommendations && (
-                  <div className="mt-6 bg-blue-50 rounded-lg p-4 sm:p-6 shadow-sm border border-blue-200">
-                    <h3 className="text-xl font-semibold text-blue-900 mb-4">AI Recommendations</h3>
+                  <div className="mt-6 bg-blue-50 rounded-lg p-2 shadow-sm border border-blue-200">
+                    <h3 className="text-sm font-semibold text-blue-900 mb-2">AI Recommendations</h3>
                     
                     {/* Cambios Sugeridos */}
                     {recommendations.cambios_sugeridos && recommendations.cambios_sugeridos.length > 0 && (
-                      <div className="mb-6">
-                        <h4 className="text-lg font-medium text-blue-800 mb-3">Suggested Changes</h4>
+                      <div className="mb-2">
+                        <h4 className="text-sm font-medium text-blue-800 mb-2">Suggested Changes</h4>
                         <div className="space-y-2">
                           {recommendations.cambios_sugeridos.map((cambio, index) => (
-                            <div key={index} className="bg-white rounded-lg p-3 border border-blue-200">
+                            <div key={index} className="bg-white rounded-lg p-2 border border-blue-200">
                               <div className="flex items-start justify-between">
                                 <div className="flex-1">
                                   <div className="font-medium text-gray-900">
@@ -382,10 +390,10 @@ function App() {
                     {/* Lineup Optimizado */}
                     {recommendations.lineup_optimizado && recommendations.lineup_optimizado.length > 0 && (
                       <div>
-                        <h4 className="text-lg font-medium text-blue-800 mb-3">Optimized Lineup</h4>
+                        <h4 className="text-sm font-medium text-blue-800 mb-2">Optimized Lineup</h4>
                         <div className="space-y-2">
                           {recommendations.lineup_optimizado.map((player, index) => (
-                            <div key={index} className="bg-white rounded-lg p-3 border border-blue-200">
+                            <div key={index} className="bg-white rounded-lg p-2 border border-blue-200">
                               <div className="flex items-center justify-between">
                                 <div className="flex-1">
                                   <div className="font-medium text-gray-900">
