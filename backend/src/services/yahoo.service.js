@@ -31,40 +31,38 @@ export class YahooService {
 
   async getAccessToken(code) {
   try {
-    // Yahoo requiere Basic Auth, NO enviar client_id/secret en params
-    const params = new URLSearchParams({
-      redirect_uri: this.redirectUri,
-      code: code,
-      grant_type: 'authorization_code'
+    const tokenUrl = 'https://api.login.yahoo.com/oauth2/get_token';
+    const params = new URLSearchParams();
+    params.append('client_id', this.clientId);
+    params.append('client_secret', this.clientSecret);
+    params.append('redirect_uri', this.redirectUri);
+    params.append('code', code);
+    params.append('grant_type', 'authorization_code');
+
+    console.log('Requesting token...');
+    console.log('Client ID:', this.clientId?.substring(0,20) + '...');
+    console.log('Has secret:', !!this.clientSecret);
+    console.log('Code:', code.substring(0,10) + '...');
+
+    const response = await axios.post(tokenUrl, params, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      timeout: 15000
     });
 
-    // Crear Basic Auth header
-    const auth = Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64');
-    
-    console.log('Requesting token with Basic Auth...');
-    console.log('Redirect URI:', this.redirectUri);
-
-    console.log('About to call Yahoo token endpoint...');
-    console.log('URL:', 'https://api.login.yahoo.com/oauth2/get_token');
-    console.log('Params being sent:', params.toString());
-
-    const response = await axios.post(
-      'https://api.login.yahoo.com/oauth2/get_token',
-      params,
-      {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': `Basic ${auth}`
-        }
-      }
-    );
-
+    console.log('Yahoo responded with status:', response.status);
     return response.data;
   } catch (error) {
-    console.error('Full error object:', error);
-    console.error('Error response status:', error.response?.status);
-    console.error('Error response headers:', error.response?.headers);
-    console.error('Yahoo token error:', error.response?.data);
+    if (error.code === 'ECONNABORTED') {
+      console.error('Request timeout - Yahoo did not respond in 15 seconds');
+    } else if (error.response) {
+      console.error('Yahoo API error:', error.response.status, error.response.data);
+    } else if (error.request) {
+      console.error('No response received from Yahoo:', error.message);
+    } else {
+      console.error('Error setting up request:', error.message);
+    }
     throw error;
   }
 }
