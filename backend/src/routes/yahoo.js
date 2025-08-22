@@ -274,4 +274,141 @@ router.get('/leagues', async (req, res) => {
   res.json({ message: 'Leagues endpoint - to be implemented' });
 });
 
+// Get user roster
+router.get('/roster', async (req, res) => {
+  try {
+    const { sessionId, leagueKey } = req.query;
+    
+    // Validar que existan ambos parámetros
+    if (!sessionId || !leagueKey) {
+      return res.status(400).json({ 
+        error: 'sessionId and leagueKey are required parameters' 
+      });
+    }
+    
+    // Obtener la sesión del Map sessions (necesitamos importar tokenStore)
+    // Nota: tokenStore está definido en server.js, necesitamos acceso a él
+    const tokenData = req.app.get('tokenStore')?.get(sessionId);
+    
+    if (!tokenData) {
+      return res.status(401).json({ 
+        error: 'Invalid or expired session' 
+      });
+    }
+    
+    // Hacer llamada a la API de Yahoo para obtener los teams de la liga
+    const teamsResponse = await axios.get(
+      `https://fantasysports.yahooapis.com/fantasy/v2/league/${leagueKey}/teams?format=json`,
+      {
+        headers: {
+          'Authorization': `Bearer ${tokenData.access_token}`,
+          'Accept': 'application/json'
+        }
+      }
+    );
+    
+    const teams = teamsResponse.data?.fantasy_content?.league?.[1]?.teams;
+    
+    if (!teams) {
+      return res.status(404).json({ 
+        error: 'No teams found in the league' 
+      });
+    }
+    
+    // Obtener información del usuario para encontrar su team
+    const userResponse = await axios.get(
+      'https://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1?format=json',
+      {
+        headers: {
+          'Authorization': `Bearer ${tokenData.access_token}`,
+          'Accept': 'application/json'
+        }
+      }
+    );
+    
+    const userGuid = userResponse.data?.fantasy_content?.users?.[0]?.user?.[0]?.guid;
+    
+    if (!userGuid) {
+      return res.status(404).json({ 
+        error: 'Unable to identify user' 
+      });
+    }
+    
+    // Encontrar el team del usuario
+    let userTeamKey = null;
+    
+    for (let i = 0; i < teams.length; i++) {
+      const team = teams[i]?.team?.[0];
+      if (team && team.owner_guid === userGuid) {
+        userTeamKey = team.team_key;
+        break;
+      }
+    }
+    
+    if (!userTeamKey) {
+      return res.status(404).json({ 
+        error: 'User team not found in the league' 
+      });
+    }
+    
+    // Hacer otra llamada para obtener el roster de ese team
+    const rosterResponse = await axios.get(
+      `https://fantasysports.yahooapis.com/fantasy/v2/team/${userTeamKey}/roster?format=json`,
+      {
+        headers: {
+          'Authorization': `Bearer ${tokenData.access_token}`,
+          'Accept': 'application/json'
+        }
+      }
+    );
+    
+    const roster = rosterResponse.data?.fantasy_content?.team?.[1]?.roster;
+    
+    if (!roster) {
+      return res.status(404).json({ 
+        error: 'Roster not found' 
+      });
+    }
+    
+    // Devolver el roster como JSON
+    res.json({
+      success: true,
+      teamKey: userTeamKey,
+      roster: roster
+    });
+    
+  } catch (error) {
+    console.error('Error fetching roster:', error);
+    
+    // Manejar errores específicos de la API de Yahoo
+    if (error.response) {
+      const status = error.response.status;
+      const message = error.response.data?.error?.description || error.response.statusText;
+      
+      if (status === 401) {
+        return res.status(401).json({ 
+          error: 'Authentication failed - token may be expired' 
+        });
+      } else if (status === 403) {
+        return res.status(403).json({ 
+          error: 'Access denied - insufficient permissions' 
+        });
+      } else if (status === 404) {
+        return res.status(404).json({ 
+          error: 'Resource not found' 
+        });
+      }
+      
+      return res.status(status).json({ 
+        error: message || 'Yahoo API error' 
+      });
+    }
+    
+    // Error genérico
+    res.status(500).json({ 
+      error: 'Internal server error while fetching roster' 
+    });
+  }
+});
+
 export default router;

@@ -233,6 +233,9 @@ app.get('/api/yahoo/roster', async (req, res) => {
   }
 });
 
+// Hacer el tokenStore disponible para los routers
+app.set('tokenStore', tokenStore);
+
 app.use('/api/auth/yahoo', yahooRoutes);
 app.use('/api/expert-consensus', expertRoutes);
 app.use('/api/coach', coachRoutes);
