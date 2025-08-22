@@ -43,7 +43,7 @@ function App() {
           
           if (team && team[1] && team[1].roster && team[1].roster[0] && team[1].roster[0].players) {
             const playersData = team[1].roster[0].players;
-            console.log('Raw roster data:', rosterData);
+            console.log('Raw roster data:', playersData);
             
             const players = [];
             
