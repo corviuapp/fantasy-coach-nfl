@@ -27,26 +27,78 @@ function App() {
     const [recommendations, setRecommendations] = useState(null);
     const [showRecommendations, setShowRecommendations] = useState(false);
     const [recommendationsLoading, setRecommendationsLoading] = useState(false);
+    const [allTeams, setAllTeams] = useState([]);
+    const [selectedTeam, setSelectedTeam] = useState('');
 
     const sessionId = localStorage.getItem('yahoo_sessionId');
     const availableLeagues = leagues.filter(league => league.draft_status === 'postdraft');
 
-    const fetchRoster = async (leagueKey) => {
+    const fetchAllTeams = async (leagueKey) => {
+      if (!sessionId || !leagueKey) return;
+      
+      try {
+        const response = await fetch(`${API_URL}/api/yahoo/teams?sessionId=${sessionId}&leagueKey=${leagueKey}`);
+        const data = await response.json();
+        console.log('🚨 ALL TEAMS DEBUG:', JSON.stringify(data, null, 2));
+        
+        // Process teams data based on response format
+        let teams = [];
+        if (data.teams) {
+          teams = data.teams;
+        } else if (data.fantasy_content?.league?.[1]?.teams) {
+          const teamsData = data.fantasy_content.league[1].teams;
+          for (let i = 0; i < teamsData.count; i++) {
+            const team = teamsData[i]?.team?.[0];
+            if (team) {
+              teams.push({
+                team_key: team.team_key,
+                name: team.name,
+                owner_guid: team.owner_guid,
+                managers: team.managers
+              });
+            }
+          }
+        }
+        
+        console.log('🚨 PROCESSED TEAMS:', teams);
+        setAllTeams(teams);
+      } catch (err) {
+        console.error('❌ Error fetching teams:', err);
+      }
+    };
+
+    const fetchRoster = async (leagueKey, teamKey = null) => {
       if (!sessionId || !leagueKey) return;
       
       setLoading(true);
       try {
-        const response = await fetch(`${API_URL}/api/yahoo/roster?sessionId=${sessionId}&leagueKey=${leagueKey}`);
+        const url = teamKey ? 
+          `${API_URL}/api/yahoo/roster?sessionId=${sessionId}&leagueKey=${leagueKey}&teamKey=${teamKey}` :
+          `${API_URL}/api/yahoo/roster?sessionId=${sessionId}&leagueKey=${leagueKey}`;
+        
+        const response = await fetch(url);
         const data = await response.json();
-        console.log('Raw roster data:', JSON.stringify(data, null, 2));
+        console.log('🚨 EMERGENCY DEBUG - Raw roster data:', JSON.stringify(data, null, 2));
         
         try {
-          const roster = data?.roster;
-          console.log('Roster structure:', roster);
+          // Try the new format first (current backend response)
+          let roster = data?.roster;
+          let team = null;
+          
+          // If new format fails, try the old format
+          if (!roster) {
+            team = data?.fantasy_content?.team;
+            if (team && team[1] && team[1].roster && team[1].roster[0]) {
+              roster = team[1].roster;
+            }
+          }
+          
+          console.log('🚨 ROSTER STRUCTURE:', roster);
+          console.log('🚨 TEAM STRUCTURE:', team);
           
           if (roster && roster[0] && roster[0].players) {
             const playersData = roster[0].players;
-            console.log('Raw roster data:', playersData);
+            console.log('🚨 PLAYERS DATA:', playersData);
             
             const players = [];
             
@@ -69,20 +121,20 @@ function App() {
               }
             }
             
-            console.log('Processed players:', players);
+            console.log('✅ Processed players:', players);
             setRoster(players);
           } else {
-            console.log('No roster found in roster structure');
+            console.log('❌ No roster found in data structure');
             setRoster([]);
           }
           setLoading(false);
         } catch (err) {
-          console.error('Processing error:', err);
+          console.error('❌ Processing error:', err);
           setError('Error processing roster');
           setLoading(false);
         }
       } catch (err) {
-        console.error('Error fetching roster:', err);
+        console.error('❌ Error fetching roster:', err);
         alert('Error fetching roster. Please try again.');
         setLoading(false);
       }
@@ -91,8 +143,20 @@ function App() {
     const handleLeagueSelect = (e) => {
       const leagueKey = e.target.value;
       setSelectedLeague(leagueKey);
+      setSelectedTeam('');
+      setRoster([]);
       if (leagueKey) {
-        fetchRoster(leagueKey);
+        fetchAllTeams(leagueKey);
+      } else {
+        setAllTeams([]);
+      }
+    };
+
+    const handleTeamSelect = (e) => {
+      const teamKey = e.target.value;
+      setSelectedTeam(teamKey);
+      if (teamKey && selectedLeague) {
+        fetchRoster(selectedLeague, teamKey);
       } else {
         setRoster([]);
       }
@@ -169,7 +233,7 @@ function App() {
               <select 
                 value={selectedLeague}
                 onChange={handleLeagueSelect}
-                className="w-full md:w-1/2 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full md:w-1/2 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-4"
               >
                 <option value="">Choose a league...</option>
                 {availableLeagues.map((league) => (
@@ -178,6 +242,30 @@ function App() {
                   </option>
                 ))}
               </select>
+
+              {/* Emergency Team Selector */}
+              {allTeams.length > 0 && (
+                <>
+                  <label className="block text-sm font-medium text-gray-700 mb-2 mt-4">
+                    🚨 Emergency Team Selector (Choose YOUR team):
+                  </label>
+                  <select 
+                    value={selectedTeam}
+                    onChange={handleTeamSelect}
+                    className="w-full md:w-1/2 px-3 py-2 border border-red-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 bg-red-50"
+                  >
+                    <option value="">Choose your team...</option>
+                    {allTeams.map((team) => (
+                      <option key={team.team_key} value={team.team_key}>
+                        {team.name} - {team.team_key}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-red-600 mt-1">
+                    ⚠️ Temporary fix: Manually select your team until auto-detection is fixed
+                  </p>
+                </>
+              )}
             </div>
 
             {loading && (

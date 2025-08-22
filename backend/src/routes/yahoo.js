@@ -318,10 +318,80 @@ router.get('/leagues', async (req, res) => {
   }
 });
 
+// Get teams in a league
+router.get('/teams', async (req, res) => {
+  try {
+    const { sessionId, leagueKey } = req.query;
+    
+    if (!sessionId || !leagueKey) {
+      return res.status(400).json({ 
+        error: 'sessionId and leagueKey are required parameters' 
+      });
+    }
+    
+    // Get session
+    const { sessionStore } = await import('../../server.js');
+    const tokenData = sessionStore.get(sessionId);
+    
+    if (!tokenData) {
+      return res.status(401).json({ 
+        error: 'Invalid or expired session' 
+      });
+    }
+    
+    // Get teams from the league
+    const teamsResponse = await axios.get(
+      `https://fantasysports.yahooapis.com/fantasy/v2/league/${leagueKey}/teams?format=json`,
+      {
+        headers: {
+          'Authorization': `Bearer ${tokenData.access_token}`,
+          'Accept': 'application/json'
+        }
+      }
+    );
+    
+    const teams = teamsResponse.data?.fantasy_content?.league?.[1]?.teams;
+    
+    if (!teams) {
+      return res.status(404).json({ 
+        error: 'No teams found in the league' 
+      });
+    }
+    
+    // Process teams into a clean format
+    const processedTeams = [];
+    for (let i = 0; i < teams.length; i++) {
+      const team = teams[i]?.team?.[0];
+      if (team) {
+        processedTeams.push({
+          team_key: team.team_key,
+          name: team.name,
+          owner_guid: team.owner_guid,
+          managers: team.managers
+        });
+      }
+    }
+    
+    console.log(`🚨 EMERGENCY - Found ${processedTeams.length} teams in league ${leagueKey}:`, processedTeams);
+    
+    res.json({
+      success: true,
+      teams: processedTeams,
+      leagueKey: leagueKey
+    });
+    
+  } catch (error) {
+    console.error('Error fetching teams:', error);
+    res.status(500).json({ 
+      error: 'Internal server error while fetching teams' 
+    });
+  }
+});
+
 // Get user roster
 router.get('/roster', async (req, res) => {
   try {
-    const { sessionId, leagueKey } = req.query;
+    const { sessionId, leagueKey, teamKey } = req.query;
     
     // Validar que existan ambos parámetros
     if (!sessionId || !leagueKey) {
@@ -378,26 +448,31 @@ router.get('/roster', async (req, res) => {
       });
     }
     
-    // Encontrar el team del usuario
-    let userTeamKey = null;
+    // Use provided teamKey or find user's team
+    let targetTeamKey = teamKey;
     
-    for (let i = 0; i < teams.length; i++) {
-      const team = teams[i]?.team?.[0];
-      if (team && team.owner_guid === userGuid) {
-        userTeamKey = team.team_key;
-        break;
+    if (!targetTeamKey) {
+      // Find the user's team automatically
+      for (let i = 0; i < teams.length; i++) {
+        const team = teams[i]?.team?.[0];
+        if (team && team.owner_guid === userGuid) {
+          targetTeamKey = team.team_key;
+          break;
+        }
+      }
+      
+      if (!targetTeamKey) {
+        return res.status(404).json({ 
+          error: 'User team not found in the league. Use teamKey parameter to specify manually.' 
+        });
       }
     }
     
-    if (!userTeamKey) {
-      return res.status(404).json({ 
-        error: 'User team not found in the league' 
-      });
-    }
+    console.log(`🚨 EMERGENCY - Using team key: ${targetTeamKey} (manual: ${teamKey ? 'YES' : 'NO'})`);
     
-    // Hacer otra llamada para obtener el roster de ese team
+    // Get roster for the target team
     const rosterResponse = await axios.get(
-      `https://fantasysports.yahooapis.com/fantasy/v2/team/${userTeamKey}/roster?format=json`,
+      `https://fantasysports.yahooapis.com/fantasy/v2/team/${targetTeamKey}/roster?format=json`,
       {
         headers: {
           'Authorization': `Bearer ${tokenData.access_token}`,
@@ -414,10 +489,10 @@ router.get('/roster', async (req, res) => {
       });
     }
     
-    // Devolver el roster como JSON
+    // Return roster as JSON
     res.json({
       success: true,
-      teamKey: userTeamKey,
+      teamKey: targetTeamKey,
       roster: roster
     });
     
