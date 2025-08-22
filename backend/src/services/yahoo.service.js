@@ -85,4 +85,23 @@ async getUserLeagues(accessToken) {
     throw error;
   }
 }
+
+async getUserTeam(accessToken, leagueKey, teamId = 1) {
+  try {
+    const response = await axios.get(
+      `https://fantasysports.yahooapis.com/fantasy/v2/team/${leagueKey}.t.${teamId}/roster?format=json`,
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Accept': 'application/json'
+        }
+      }
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching user team:', error);
+    throw error;
+  }
+}
 }

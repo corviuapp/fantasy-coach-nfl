@@ -208,6 +208,31 @@ app.get('/api/yahoo/leagues', async (req, res) => {
   }
 });
 
+// Obtener roster del usuario usando sessionId y leagueKey
+app.get('/api/yahoo/roster', async (req, res) => {
+  try {
+    const { sessionId, leagueKey } = req.query;
+    
+    if (!sessionId || !leagueKey) {
+      return res.status(400).json({ error: 'Session ID and league key are required' });
+    }
+    
+    // Obtener el token del Map usando el sessionId
+    const tokenData = tokenStore.get(sessionId);
+    
+    if (!tokenData) {
+      return res.status(401).json({ error: 'Invalid or expired session' });
+    }
+    
+    // Usar el token guardado para obtener el roster del usuario
+    const roster = await yahoo.getUserTeam(tokenData.access_token, leagueKey);
+    res.json(roster);
+  } catch (error) {
+    console.error('Error fetching Yahoo roster:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.use('/api/auth/yahoo', yahooRoutes);
 app.use('/api/expert-consensus', expertRoutes);
 app.use('/api/coach', coachRoutes);
