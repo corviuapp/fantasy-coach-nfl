@@ -131,6 +131,19 @@ app.get('/api/yahoo/leagues', async (req, res) => {
   }
 });
 */
+// Yahoo OAuth callback
+app.get('/auth/yahoo/callback', (req, res) => {
+  const { code } = req.query;
+  
+  console.log('Yahoo authorization code:', code);
+  
+  if (code) {
+    res.redirect('https://frontend-production-f269.up.railway.app#yahoo-success');
+  } else {
+    res.redirect('https://frontend-production-f269.up.railway.app#yahoo-error');
+  }
+});
+
 app.use('/api/auth/yahoo', yahooRoutes);
 app.use('/api/expert-consensus', expertRoutes);
 app.use('/api/coach', coachRoutes);
