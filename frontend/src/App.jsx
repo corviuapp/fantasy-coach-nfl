@@ -76,6 +76,11 @@ function App() {
           `${API_URL}/api/yahoo/roster?sessionId=${sessionId}&leagueKey=${leagueKey}&teamKey=${teamKey}` :
           `${API_URL}/api/yahoo/roster?sessionId=${sessionId}&leagueKey=${leagueKey}`;
         
+        console.log(`🚨 FRONTEND DEBUG: Llamando a roster con:`);
+        console.log(`   - leagueKey: ${leagueKey}`);
+        console.log(`   - teamKey: ${teamKey || 'AUTO-DETECT'}`);
+        console.log(`   - URL completa: ${url}`);
+        
         const response = await fetch(url);
         const data = await response.json();
         console.log('🚨 EMERGENCY DEBUG - Raw roster data:', JSON.stringify(data, null, 2));
@@ -145,8 +150,18 @@ function App() {
       setSelectedLeague(leagueKey);
       setSelectedTeam('');
       setRoster([]);
+      
       if (leagueKey) {
         fetchAllTeams(leagueKey);
+        
+        // Auto-select and load user's team if available
+        const selectedLeagueData = leagues.find(league => league.id === leagueKey);
+        if (selectedLeagueData?.user_team_key) {
+          console.log(`🚨 AUTO-SELECTING user team: ${selectedLeagueData.user_team_name} (${selectedLeagueData.user_team_key})`);
+          setSelectedTeam(selectedLeagueData.user_team_key);
+          // Auto-load roster for user's team
+          fetchRoster(leagueKey, selectedLeagueData.user_team_key);
+        }
       } else {
         setAllTeams([]);
       }
@@ -243,27 +258,52 @@ function App() {
                 ))}
               </select>
 
-              {/* Emergency Team Selector */}
-              {allTeams.length > 0 && (
+              {/* Team Status & Selector */}
+              {selectedLeague && (
                 <>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 mt-4">
-                    🚨 Emergency Team Selector (Choose YOUR team):
-                  </label>
-                  <select 
-                    value={selectedTeam}
-                    onChange={handleTeamSelect}
-                    className="w-full md:w-1/2 px-3 py-2 border border-red-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 bg-red-50"
-                  >
-                    <option value="">Choose your team...</option>
-                    {allTeams.map((team) => (
-                      <option key={team.team_key} value={team.team_key}>
-                        {team.name} - {team.team_key}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-red-600 mt-1">
-                    ⚠️ Temporary fix: Manually select your team until auto-detection is fixed
-                  </p>
+                  {(() => {
+                    const selectedLeagueData = leagues.find(league => league.id === selectedLeague);
+                    if (selectedLeagueData?.user_team_key) {
+                      return (
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-4">
+                          <p className="text-sm text-green-800">
+                            ✅ <strong>Your team:</strong> {selectedLeagueData.user_team_name} ({selectedLeagueData.user_team_key})
+                          </p>
+                        </div>
+                      );
+                    } else if (allTeams.length > 0) {
+                      return (
+                        <>
+                          <label className="block text-sm font-medium text-gray-700 mb-2 mt-4">
+                            🚨 Manual Team Selection Required:
+                          </label>
+                          <select 
+                            value={selectedTeam}
+                            onChange={handleTeamSelect}
+                            className="w-full md:w-1/2 px-3 py-2 border border-red-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 bg-red-50"
+                          >
+                            <option value="">Choose your team...</option>
+                            {allTeams.map((team) => (
+                              <option key={team.team_key} value={team.team_key}>
+                                {team.name} - {team.team_key}
+                              </option>
+                            ))}
+                          </select>
+                          <p className="text-xs text-red-600 mt-1">
+                            ⚠️ Auto-detection failed. Please select your team manually.
+                          </p>
+                        </>
+                      );
+                    } else {
+                      return (
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-4">
+                          <p className="text-sm text-yellow-800">
+                            🔍 Loading teams...
+                          </p>
+                        </div>
+                      );
+                    }
+                  })()}
                 </>
               )}
             </div>
@@ -604,6 +644,8 @@ function App() {
       const response = await fetch(`${API_URL}/api/yahoo/leagues?sessionId=${sessionId}`);
       const data = await response.json();
       
+      console.log('🚨 LEAGUES RESPONSE:', JSON.stringify(data, null, 2));
+      
       if (data.fantasy_content) {
         const yahooLeagues = [];
         const users = data.fantasy_content.users;
@@ -619,13 +661,18 @@ function App() {
                 for (const key in leaguesObj) {
                   if (key !== 'count' && leaguesObj[key].league) {
                     const league = leaguesObj[key].league[0];
-                    yahooLeagues.push({
+                    const leagueData = {
                       id: league.league_key,
                       name: league.name,
                       teams: parseInt(league.num_teams),
                       platform: 'yahoo',
-                      draft_status: league.draft_status
-                    });
+                      draft_status: league.draft_status,
+                      user_team_key: league.user_team_key, // ✅ Add user's team key
+                      user_team_name: league.user_team_name // ✅ Add user's team name
+                    };
+                    
+                    console.log(`🚨 Liga procesada: ${league.name} - User team: ${league.user_team_name} (${league.user_team_key})`);
+                    yahooLeagues.push(leagueData);
                   }
                 }
               }

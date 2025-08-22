@@ -308,6 +308,69 @@ router.get('/leagues', async (req, res) => {
     }
     
     const leaguesData = await yahooService.getUserLeagues(tokenData.access_token);
+    
+    // Enrich leagues data with user's team information
+    try {
+      // Get user GUID for team matching
+      const userResponse = await axios.get(
+        'https://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1?format=json',
+        {
+          headers: {
+            'Authorization': `Bearer ${tokenData.access_token}`,
+            'Accept': 'application/json'
+          }
+        }
+      );
+      
+      const userGuid = userResponse.data?.fantasy_content?.users?.[0]?.user?.[0]?.guid;
+      console.log(`🚨 LEAGUES ENDPOINT - User GUID: ${userGuid}`);
+      
+      // Add user team information to the response
+      if (leaguesData.fantasy_content?.users?.[0]?.user?.[1]?.games?.['0']?.game?.[1]?.leagues) {
+        const leagues = leaguesData.fantasy_content.users[0].user[1].games['0'].game[1].leagues;
+        
+        for (const key in leagues) {
+          if (key !== 'count' && leagues[key].league) {
+            const league = leagues[key].league[0];
+            console.log(`🚨 LEAGUES - Procesando liga: ${league.name} (${league.league_key})`);
+            
+            // Try to get teams for this league and find user's team
+            try {
+              const teamsResponse = await axios.get(
+                `https://fantasysports.yahooapis.com/fantasy/v2/league/${league.league_key}/teams?format=json`,
+                {
+                  headers: {
+                    'Authorization': `Bearer ${tokenData.access_token}`,
+                    'Accept': 'application/json'
+                  }
+                }
+              );
+              
+              const teams = teamsResponse.data?.fantasy_content?.league?.[1]?.teams;
+              if (teams) {
+                for (let i = 0; i < teams.length; i++) {
+                  const team = teams[i]?.team?.[0];
+                  if (team && team.owner_guid === userGuid) {
+                    // Add user's team_key to league data
+                    league.user_team_key = team.team_key;
+                    league.user_team_name = team.name;
+                    console.log(`   ✅ Found user team: ${team.name} (${team.team_key})`);
+                    break;
+                  }
+                }
+              }
+            } catch (teamErr) {
+              console.log(`   ❌ Error getting teams for league ${league.league_key}:`, teamErr.response?.status);
+            }
+          }
+        }
+      }
+      
+    } catch (enrichErr) {
+      console.log('❌ Error enriching leagues data:', enrichErr.response?.status);
+      // Continue without enrichment
+    }
+    
     res.json(leaguesData);
     
   } catch (error) {
@@ -442,6 +505,8 @@ router.get('/roster', async (req, res) => {
     
     const userGuid = userResponse.data?.fantasy_content?.users?.[0]?.user?.[0]?.guid;
     
+    console.log(`🚨 DEBUG USER GUID: ${userGuid}`);
+    
     if (!userGuid) {
       return res.status(404).json({ 
         error: 'Unable to identify user' 
@@ -452,20 +517,73 @@ router.get('/roster', async (req, res) => {
     let targetTeamKey = teamKey;
     
     if (!targetTeamKey) {
-      // Find the user's team automatically
+      console.log(`🚨 DEBUG: Buscando equipo del usuario ${userGuid} entre ${teams.length} equipos:`);
+      
+      // Find the user's team automatically using multiple methods
       for (let i = 0; i < teams.length; i++) {
         const team = teams[i]?.team?.[0];
+        const managers = team?.managers;
+        
+        console.log(`   Equipo ${i + 1}: ${team?.name} (${team?.team_key})`);
+        console.log(`      Owner GUID: ${team?.owner_guid}`);
+        console.log(`      Managers:`, managers);
+        
+        // Method 1: Direct owner_guid match
         if (team && team.owner_guid === userGuid) {
           targetTeamKey = team.team_key;
+          console.log(`   ✅ MATCH (owner_guid)! Usando team_key: ${targetTeamKey}`);
           break;
+        }
+        
+        // Method 2: Check in managers array
+        if (managers && managers.length > 0) {
+          for (let j = 0; j < managers.length; j++) {
+            const manager = managers[j]?.manager?.[0];
+            if (manager && (manager.guid === userGuid || manager.owner_guid === userGuid)) {
+              targetTeamKey = team.team_key;
+              console.log(`   ✅ MATCH (manager)! Usando team_key: ${targetTeamKey}`);
+              break;
+            }
+          }
+          if (targetTeamKey) break;
         }
       }
       
       if (!targetTeamKey) {
+        console.log(`❌ NO MATCH ENCONTRADO! Usuario ${userGuid} no encontrado en ningún equipo de la liga`);
+        
+        // Additional debugging: Get user details from a different endpoint
+        try {
+          const userTeamsResponse = await axios.get(
+            `https://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1/games/leagues;league_keys=${leagueKey}/teams?format=json`,
+            {
+              headers: {
+                'Authorization': `Bearer ${tokenData.access_token}`,
+                'Accept': 'application/json'
+              }
+            }
+          );
+          
+          console.log('🔍 Alternative user teams search:', JSON.stringify(userTeamsResponse.data, null, 2));
+          
+        } catch (altErr) {
+          console.log('🔍 Alternative search failed:', altErr.response?.status);
+        }
+        
         return res.status(404).json({ 
-          error: 'User team not found in the league. Use teamKey parameter to specify manually.' 
+          error: 'User team not found in the league. Use teamKey parameter to specify manually.',
+          debugInfo: {
+            userGuid: userGuid,
+            availableTeams: teams.map(t => ({
+              name: t?.team?.[0]?.name,
+              team_key: t?.team?.[0]?.team_key,
+              owner_guid: t?.team?.[0]?.owner_guid
+            }))
+          }
         });
       }
+    } else {
+      console.log(`🚨 DEBUG: Usando team_key manual proporcionado: ${targetTeamKey}`);
     }
     
     console.log(`🚨 EMERGENCY - Using team key: ${targetTeamKey} (manual: ${teamKey ? 'YES' : 'NO'})`);
