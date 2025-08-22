@@ -8,6 +8,8 @@ import coachRoutes from './routes/coach.js';
 
 dotenv.config();
 
+const tokenStore = new Map();
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -132,14 +134,31 @@ app.get('/api/yahoo/leagues', async (req, res) => {
 });
 */
 // Yahoo OAuth callback
-app.get('/auth/yahoo/callback', (req, res) => {
+app.get('/auth/yahoo/callback', async (req, res) => {
   const { code } = req.query;
   
-  console.log('Yahoo authorization code:', code);
-  
-  if (code) {
-    res.redirect('https://frontend-production-f269.up.railway.app#yahoo-success');
-  } else {
+  try {
+    if (!code) {
+      return res.redirect('https://frontend-production-f269.up.railway.app#yahoo-error');
+    }
+
+    // 1) Intercambiar el código por un access token
+    const tokens = await yahoo.getAccessToken(code);
+    
+    // 2) Generar un sessionId único
+    const sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    
+    // 3) Guardar el token en el Map temporal
+    tokenStore.set(sessionId, {
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
+      timestamp: Date.now()
+    });
+    
+    // 4) Redirigir al frontend con el sessionId como parámetro
+    res.redirect(`https://frontend-production-f269.up.railway.app#yahoo-success?sessionId=${sessionId}`);
+  } catch (error) {
+    console.error('Yahoo auth error:', error);
     res.redirect('https://frontend-production-f269.up.railway.app#yahoo-error');
   }
 });
@@ -153,6 +172,31 @@ app.get('/api/yahoo/test-leagues', async (req, res) => {
     }
     
     const leagues = await yahoo.getUserLeagues(access_token);
+    res.json(leagues);
+  } catch (error) {
+    console.error('Error fetching Yahoo leagues:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Obtener ligas de Yahoo usando sessionId
+app.get('/api/yahoo/leagues', async (req, res) => {
+  try {
+    const { sessionId } = req.query;
+    
+    if (!sessionId) {
+      return res.status(400).json({ error: 'Session ID is required' });
+    }
+    
+    // Obtener el token del Map usando el sessionId
+    const tokenData = tokenStore.get(sessionId);
+    
+    if (!tokenData) {
+      return res.status(401).json({ error: 'Invalid or expired session' });
+    }
+    
+    // Usar el token guardado para obtener las ligas del usuario
+    const leagues = await yahoo.getUserLeagues(tokenData.access_token);
     res.json(leagues);
   } catch (error) {
     console.error('Error fetching Yahoo leagues:', error);

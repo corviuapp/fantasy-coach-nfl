@@ -64,7 +64,7 @@ export class YahooService {
 
 async getUserLeagues(accessToken) {
   try {
-    const response = await fetch(
+    const response = await axios.get(
       'https://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1/games;game_keys=nfl/leagues?format=json',
       {
         headers: {
@@ -74,10 +74,7 @@ async getUserLeagues(accessToken) {
       }
     );
     
-    const data = await response.json();
-    console.log('Yahoo API Response:', JSON.stringify(data, null, 2));
-    
-    return data;
+    return response.data;
   } catch (error) {
     console.error('Error fetching leagues:', error);
     throw error;
