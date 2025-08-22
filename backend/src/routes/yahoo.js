@@ -1,6 +1,7 @@
 import express from 'express';
 import axios from 'axios';
-import { YahooService } from '../services/yahoo.service.js';
+import { YahooService } from '../../YahooService.js';
+import { v4 as uuidv4 } from 'uuid';
 
 const router = express.Router();
 const yahooService = new YahooService();
@@ -42,6 +43,8 @@ router.get('/callback', async (req, res) => {
     console.log('XOAUTH Yahoo GUID:', tokenData.xoauth_yahoo_guid);
     console.log('Full Token Length:', tokenData.access_token?.length);
     console.log('========================\\n');
+    
+    let sessionId = null;
     
     if (tokenData.access_token) {
       // PASO 1: Probar el token con una llamada simple
@@ -254,10 +257,25 @@ router.get('/callback', async (req, res) => {
       console.log('2. Try again after completing your draft');
       console.log('3. The 2025 season (game key 461) may not be fully active yet');
       console.log('===============\\n');
+      
+      // Store session data
+      sessionId = uuidv4();
+      const { sessionStore } = await import('../../server.js');
+      sessionStore.set(sessionId, {
+        access_token: tokenData.access_token,
+        refresh_token: tokenData.refresh_token,
+        expires_in: tokenData.expires_in,
+        created_at: Date.now()
+      });
+      
+      console.log('Session stored with ID:', sessionId);
     }
     
-    // Redirigir con éxito
-    res.redirect('http://localhost:5173/#yahoo-success=true');
+    // Redirigir con éxito y pasar sessionId
+    const redirectUrl = sessionId ? 
+      `http://localhost:5173/#sessionId=${sessionId}` : 
+      'http://localhost:5173/#yahoo-success=true';
+    res.redirect(redirectUrl);
     
   } catch (error) {
     console.error('Error getting token:', error.message);
@@ -270,8 +288,34 @@ router.get('/callback', async (req, res) => {
 
 // Get user leagues - ENDPOINT SEPARADO
 router.get('/leagues', async (req, res) => {
-  // Este endpoint lo usaremos más tarde cuando tengamos el token guardado
-  res.json({ message: 'Leagues endpoint - to be implemented' });
+  try {
+    const { sessionId } = req.query;
+    
+    if (!sessionId) {
+      return res.status(400).json({ 
+        error: 'sessionId is required' 
+      });
+    }
+    
+    // Obtener la sesión del sessionStore
+    const { sessionStore } = await import('../../server.js');
+    const tokenData = sessionStore.get(sessionId);
+    
+    if (!tokenData) {
+      return res.status(401).json({ 
+        error: 'Invalid or expired session' 
+      });
+    }
+    
+    const leaguesData = await yahooService.getUserLeagues(tokenData.access_token);
+    res.json(leaguesData);
+    
+  } catch (error) {
+    console.error('Error fetching leagues:', error);
+    res.status(500).json({ 
+      error: 'Internal server error while fetching leagues' 
+    });
+  }
 });
 
 // Get user roster
@@ -286,9 +330,9 @@ router.get('/roster', async (req, res) => {
       });
     }
     
-    // Obtener la sesión del Map sessions (necesitamos importar tokenStore)
-    // Nota: tokenStore está definido en server.js, necesitamos acceso a él
-    const tokenData = req.app.get('tokenStore')?.get(sessionId);
+    // Obtener la sesión del sessionStore
+    const { sessionStore } = await import('../../server.js');
+    const tokenData = sessionStore.get(sessionId);
     
     if (!tokenData) {
       return res.status(401).json({ 

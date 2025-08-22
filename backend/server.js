@@ -7,11 +7,15 @@ import dotenv from 'dotenv';
 import { createServer } from 'http';
 import pg from 'pg';
 import yahooRoutes from './src/routes/yahoo.js';
+import lineupRoutes from './src/routes/lineup.js';
 
 // Cargar variables de entorno
 dotenv.config();
 
 const { Pool } = pg;
+
+// Simple in-memory session store (for development only)
+export const sessionStore = new Map();
 
 class FantasyCoachServer {
   constructor() {
@@ -72,6 +76,12 @@ class FantasyCoachServer {
 
     // Yahoo OAuth routes
     this.app.use('/api/auth/yahoo', yahooRoutes);
+    
+    // Yahoo API routes (for frontend requests)
+    this.app.use('/api/yahoo', yahooRoutes);
+    
+    // Lineup optimization routes
+    this.app.use('/api/lineup', lineupRoutes);
 
     // Auth routes (básicas por ahora)
     this.app.post('/api/auth/register', async (req, res) => {

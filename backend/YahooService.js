@@ -64,4 +64,61 @@ export class YahooService {
       throw error;
     }
   }
+
+  async getLeagueSettings(accessToken, leagueKey) {
+    try {
+      const response = await axios.get(
+        `https://fantasysports.yahooapis.com/fantasy/v2/league/${leagueKey}/settings?format=json`,
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Accept': 'application/json'
+          }
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      console.error('Yahoo League Settings API error:', error);
+      throw error;
+    }
+  }
+
+  async getRosterPositions(accessToken, gameKey) {
+    try {
+      const response = await axios.get(
+        `https://fantasysports.yahooapis.com/fantasy/v2/game/${gameKey}/roster_positions?format=json`,
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Accept': 'application/json'
+          }
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      console.error('Yahoo Roster Positions API error:', error);
+      throw error;
+    }
+  }
+
+  async getStatCategories(accessToken, gameKey) {
+    try {
+      const response = await axios.get(
+        `https://fantasysports.yahooapis.com/fantasy/v2/game/${gameKey}/stat_categories?format=json`,
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Accept': 'application/json'
+          }
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      console.error('Yahoo Stat Categories API error:', error);
+      throw error;
+    }
+  }
 }

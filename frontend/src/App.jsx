@@ -115,7 +115,8 @@ function App() {
           },
           body: JSON.stringify({
             roster: roster,
-            leagueKey: selectedLeague
+            leagueKey: selectedLeague,
+            sessionId: sessionId
           })
         });
         
@@ -346,6 +347,35 @@ function App() {
                   </div>
                 </div>
 
+                {/* League Information */}
+                {recommendations && (recommendations.roster_requirements || recommendations.scoring_settings) && (
+                  <div className="mt-6 bg-gray-50 rounded-lg p-2 shadow-sm border border-gray-200">
+                    <h3 className="text-sm font-semibold text-gray-900 mb-2">League Configuration</h3>
+                    
+                    {recommendations.scoring_settings && (
+                      <div className="mb-2">
+                        <span className="text-xs font-medium text-gray-700">Scoring Format: </span>
+                        <span className="text-xs text-gray-600 capitalize">{recommendations.scoring_settings}</span>
+                      </div>
+                    )}
+                    
+                    {recommendations.roster_requirements && recommendations.roster_requirements.length > 0 && (
+                      <div>
+                        <h4 className="text-xs font-medium text-gray-700 mb-1">Roster Requirements:</h4>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
+                          {recommendations.roster_requirements
+                            .filter(req => req.is_starting_position)
+                            .map((req, index) => (
+                            <div key={index} className="text-xs text-gray-600">
+                              {req.count}x {req.position}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* AI Recommendations */}
                 {recommendations && (
                   <div className="mt-6 bg-blue-50 rounded-lg p-2 shadow-sm border border-blue-200">
@@ -379,6 +409,12 @@ function App() {
                                       {cambio.reason}
                                     </div>
                                   )}
+                                  {(cambio.replaces || cambio.replaced_by) && (
+                                    <div className="text-xs text-gray-500 mt-1">
+                                      {cambio.replaces && `Replaces: Player ${cambio.replaces}`}
+                                      {cambio.replaced_by && `Replaced by: Player ${cambio.replaced_by}`}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -401,8 +437,11 @@ function App() {
                                   </div>
                                   <div className="text-sm text-gray-600">
                                     {player.position} - {player.team}
-                                    {player.selected_position && (
-                                      <span className="ml-2 text-indigo-600">({player.selected_position})</span>
+                                    {player.lineup_position && (
+                                      <span className="ml-2 text-indigo-600">→ {player.lineup_position}</span>
+                                    )}
+                                    {player.scoring_type && player.scoring_type !== 'standard' && (
+                                      <span className="ml-2 text-green-600 text-xs">({player.scoring_type})</span>
                                     )}
                                   </div>
                                 </div>
