@@ -57,7 +57,7 @@ function App() {
 
   const fetchLeagues = async (sessionId) => {
     try {
-      const response = await fetch(`${API_URL}/api/yahoo/leagues?session=${sessionId}`);
+      const response = await fetch(`${API_URL}/api/yahoo/leagues?sessionId=${sessionId}`);
       const data = await response.json();
       
       if (data.fantasy_content && data.fantasy_content.users && data.fantasy_content.users[0] && 
@@ -104,11 +104,11 @@ function App() {
     const hash = window.location.hash;
     
     // Check for sessionId in hash
-    const sessionMatch = hash.match(/[?&]session=([^&#]*)/i) || hash.match(/#session=([^&#]*)/i);
+    const sessionMatch = hash.match(/[?&]sessionId=([^&#]*)/i) || hash.match(/#sessionId=([^&#]*)/i);
     if (sessionMatch) {
       const sessionId = sessionMatch[1];
       // Store in localStorage
-      localStorage.setItem('yahoo_session', sessionId);
+      localStorage.setItem('yahoo_sessionId', sessionId);
       // Fetch leagues
       fetchLeagues(sessionId);
       // Clean the hash
@@ -129,7 +129,7 @@ function App() {
     }
     
     // Check if there's a stored sessionId on component mount
-    const storedSession = localStorage.getItem('yahoo_session');
+    const storedSession = localStorage.getItem('yahoo_sessionId');
     if (storedSession) {
       fetchLeagues(storedSession);
     }
