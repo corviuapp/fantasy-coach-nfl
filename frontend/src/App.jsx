@@ -135,12 +135,8 @@ function App() {
       }
     };
 
-    // Helper function to get recommendation for a player
     const getPlayerRecommendation = (player) => {
-      if (!recommendations || !recommendations.recommendations) return null;
-      return recommendations.recommendations.find(rec => 
-        rec.player_name === player.name || rec.player_id === player.player_id
-      );
+      return recommendations?.cambios_sugeridos?.find(c => c.player_id === player.player_id) || null;
     };
 
     const startingLineup = roster.filter(player => player.selected_position !== 'BN');
@@ -341,6 +337,80 @@ function App() {
                     </div>
                   </div>
                 </div>
+
+                {/* AI Recommendations */}
+                {recommendations && (
+                  <div className="mt-6 bg-blue-50 rounded-lg p-4 sm:p-6 shadow-sm border border-blue-200">
+                    <h3 className="text-xl font-semibold text-blue-900 mb-4">AI Recommendations</h3>
+                    
+                    {/* Cambios Sugeridos */}
+                    {recommendations.cambios_sugeridos && recommendations.cambios_sugeridos.length > 0 && (
+                      <div className="mb-6">
+                        <h4 className="text-lg font-medium text-blue-800 mb-3">Suggested Changes</h4>
+                        <div className="space-y-2">
+                          {recommendations.cambios_sugeridos.map((cambio, index) => (
+                            <div key={index} className="bg-white rounded-lg p-3 border border-blue-200">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="font-medium text-gray-900">
+                                    {cambio.player_name || `Player ${cambio.player_id}`}
+                                  </div>
+                                  <div className="text-sm text-gray-600 mt-1">
+                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                      cambio.action === 'start' ? 'bg-green-100 text-green-800' :
+                                      cambio.action === 'sit' ? 'bg-red-100 text-red-800' :
+                                      'bg-blue-100 text-blue-800'
+                                    }`}>
+                                      {cambio.action === 'start' ? '🔼 START' :
+                                       cambio.action === 'sit' ? '🔻 SIT' :
+                                       cambio.action?.toUpperCase()}
+                                    </span>
+                                  </div>
+                                  {cambio.reason && (
+                                    <div className="text-sm text-gray-700 mt-2">
+                                      {cambio.reason}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Lineup Optimizado */}
+                    {recommendations.lineup_optimizado && recommendations.lineup_optimizado.length > 0 && (
+                      <div>
+                        <h4 className="text-lg font-medium text-blue-800 mb-3">Optimized Lineup</h4>
+                        <div className="space-y-2">
+                          {recommendations.lineup_optimizado.map((player, index) => (
+                            <div key={index} className="bg-white rounded-lg p-3 border border-blue-200">
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                  <div className="font-medium text-gray-900">
+                                    {player.player_name || player.name || `Player ${player.player_id}`}
+                                  </div>
+                                  <div className="text-sm text-gray-600">
+                                    {player.position} - {player.team}
+                                    {player.selected_position && (
+                                      <span className="ml-2 text-indigo-600">({player.selected_position})</span>
+                                    )}
+                                  </div>
+                                </div>
+                                {player.projected_points && (
+                                  <div className="text-sm font-medium text-blue-600">
+                                    {player.projected_points} pts
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </>
             )}
 
