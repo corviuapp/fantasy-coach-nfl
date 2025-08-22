@@ -40,11 +40,75 @@ function App() {
         try {
           const team = data?.fantasy_content?.team;
           console.log('Team structure:', team);
+          
           if (team && team[1] && team[1].roster) {
-            console.log('Roster exists:', team[1].roster);
-            console.log('First player slot:', team[1].roster['0']);
+            const rosterData = team[1].roster;
+            console.log('Raw roster data:', rosterData);
+            
+            const players = [];
+            
+            // Iterate over roster keys (0, 1, 2, etc)
+            for (const key in rosterData) {
+              if (key !== 'count' && rosterData[key] && rosterData[key].players) {
+                const playerSlot = rosterData[key].players;
+                console.log(`Player slot ${key}:`, playerSlot);
+                
+                if (playerSlot['0'] && playerSlot['0'].player) {
+                  const playerArray = playerSlot['0'].player;
+                  console.log(`Player array for slot ${key}:`, playerArray);
+                  
+                  if (Array.isArray(playerArray) && playerArray.length >= 2) {
+                    const playerData = playerArray[0];
+                    const selectedPosition = playerArray[1]?.selected_position;
+                    
+                    // Find the player name in the playerData array
+                    let playerName = '';
+                    let playerPosition = '';
+                    let playerTeam = '';
+                    let playerId = '';
+                    let playerStatus = '';
+                    
+                    if (Array.isArray(playerData)) {
+                      for (const item of playerData) {
+                        if (item.name) {
+                          playerName = item.name.full || item.name;
+                        }
+                        if (item.display_position) {
+                          playerPosition = item.display_position;
+                        }
+                        if (item.editorial_team_abbr) {
+                          playerTeam = item.editorial_team_abbr;
+                        }
+                        if (item.player_id) {
+                          playerId = item.player_id;
+                        }
+                        if (item.status) {
+                          playerStatus = item.status;
+                        }
+                      }
+                    }
+                    
+                    if (playerName) {
+                      players.push({
+                        player_id: playerId,
+                        name: playerName,
+                        position: playerPosition,
+                        team: playerTeam,
+                        status: playerStatus,
+                        selected_position: selectedPosition?.position || 'BN'
+                      });
+                    }
+                  }
+                }
+              }
+            }
+            
+            console.log('Processed players:', players);
+            setRoster(players);
+          } else {
+            console.log('No roster found in team structure');
+            setRoster([]);
           }
-          setRoster(data);
           setLoading(false);
         } catch (err) {
           console.error('Processing error:', err);
