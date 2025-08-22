@@ -6,10 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "postbuild": "echo \"BUILD COMPLETE. Contents of dist:\" && ls -la dist && echo \"Index.html exists?\" && cat dist/index.html | head -20",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "npx --yes http-server ./dist -p 8080 --proxy http://localhost:8080? -c-1"
+    "start": "cd dist && python3 -m http.server 8080"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.85.5",
