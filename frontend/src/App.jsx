@@ -27,45 +27,11 @@ function App() {
     const [recommendations, setRecommendations] = useState(null);
     const [showRecommendations, setShowRecommendations] = useState(false);
     const [recommendationsLoading, setRecommendationsLoading] = useState(false);
-    const [allTeams, setAllTeams] = useState([]);
     const [selectedTeam, setSelectedTeam] = useState('');
 
     const sessionId = localStorage.getItem('yahoo_sessionId');
     const availableLeagues = leagues.filter(league => league.draft_status === 'postdraft');
 
-    const fetchAllTeams = async (leagueKey) => {
-      if (!sessionId || !leagueKey) return;
-      
-      try {
-        const response = await fetch(`${API_URL}/api/yahoo/teams?sessionId=${sessionId}&leagueKey=${leagueKey}`);
-        const data = await response.json();
-        console.log('🚨 ALL TEAMS DEBUG:', JSON.stringify(data, null, 2));
-        
-        // Process teams data based on response format
-        let teams = [];
-        if (data.teams) {
-          teams = data.teams;
-        } else if (data.fantasy_content?.league?.[1]?.teams) {
-          const teamsData = data.fantasy_content.league[1].teams;
-          for (let i = 0; i < teamsData.count; i++) {
-            const team = teamsData[i]?.team?.[0];
-            if (team) {
-              teams.push({
-                team_key: team.team_key,
-                name: team.name,
-                owner_guid: team.owner_guid,
-                managers: team.managers
-              });
-            }
-          }
-        }
-        
-        console.log('🚨 PROCESSED TEAMS:', teams);
-        setAllTeams(teams);
-      } catch (err) {
-        console.error('❌ Error fetching teams:', err);
-      }
-    };
 
     const fetchRoster = async (leagueKey, teamKey = null) => {
       if (!sessionId || !leagueKey) return;
@@ -152,8 +118,6 @@ function App() {
       setRoster([]);
       
       if (leagueKey) {
-        fetchAllTeams(leagueKey);
-        
         // Auto-select and load user's team if available
         const selectedLeagueData = leagues.find(league => league.id === leagueKey);
         if (selectedLeagueData?.user_team_key) {
@@ -162,20 +126,9 @@ function App() {
           // Auto-load roster for user's team
           fetchRoster(leagueKey, selectedLeagueData.user_team_key);
         }
-      } else {
-        setAllTeams([]);
       }
     };
 
-    const handleTeamSelect = (e) => {
-      const teamKey = e.target.value;
-      setSelectedTeam(teamKey);
-      if (teamKey && selectedLeague) {
-        fetchRoster(selectedLeague, teamKey);
-      } else {
-        setRoster([]);
-      }
-    };
 
     const handleGetRecommendations = async () => {
       if (!roster.length || !selectedLeague) {
@@ -258,7 +211,7 @@ function App() {
                 ))}
               </select>
 
-              {/* Team Status & Selector */}
+              {/* Team Status */}
               {selectedLeague && (
                 <>
                   {(() => {
@@ -271,34 +224,11 @@ function App() {
                           </p>
                         </div>
                       );
-                    } else if (allTeams.length > 0) {
-                      return (
-                        <>
-                          <label className="block text-sm font-medium text-gray-700 mb-2 mt-4">
-                            🚨 Manual Team Selection Required:
-                          </label>
-                          <select 
-                            value={selectedTeam}
-                            onChange={handleTeamSelect}
-                            className="w-full md:w-1/2 px-3 py-2 border border-red-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 bg-red-50"
-                          >
-                            <option value="">Choose your team...</option>
-                            {allTeams.map((team) => (
-                              <option key={team.team_key} value={team.team_key}>
-                                {team.name} - {team.team_key}
-                              </option>
-                            ))}
-                          </select>
-                          <p className="text-xs text-red-600 mt-1">
-                            ⚠️ Auto-detection failed. Please select your team manually.
-                          </p>
-                        </>
-                      );
                     } else {
                       return (
-                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-4">
-                          <p className="text-sm text-yellow-800">
-                            🔍 Loading teams...
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-3 mt-4">
+                          <p className="text-sm text-red-800">
+                            ⚠️ <strong>Team not found:</strong> This league doesn't have user team information.
                           </p>
                         </div>
                       );
