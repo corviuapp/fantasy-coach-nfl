@@ -16,6 +16,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [draftRecs, setDraftRecs] = useState([]);
+  const [leagues, setLeagues] = useState([]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -54,6 +55,32 @@ function App() {
     }
   };
 
+  const fetchLeagues = async (sessionId) => {
+    try {
+      const response = await fetch(`${API_URL}/api/yahoo/leagues?session=${sessionId}`);
+      const data = await response.json();
+      
+      if (data.fantasy_content && data.fantasy_content.users && data.fantasy_content.users[0] && 
+          data.fantasy_content.users[0].user && data.fantasy_content.users[0].user[1] &&
+          data.fantasy_content.users[0].user[1].games && data.fantasy_content.users[0].user[1].games[0] &&
+          data.fantasy_content.users[0].user[1].games[0].game && data.fantasy_content.users[0].user[1].games[0].game[1] &&
+          data.fantasy_content.users[0].user[1].games[0].game[1].leagues) {
+        
+        const leaguesData = data.fantasy_content.users[0].user[1].games[0].game[1].leagues;
+        const mappedLeagues = leaguesData.map(league => ({
+          league_key: league.league[0].league_key,
+          name: league.league[0].name,
+          num_teams: league.league[0].num_teams,
+          draft_status: league.league[0].draft_status
+        }));
+        
+        setLeagues(mappedLeagues);
+      }
+    } catch (err) {
+      console.error('Error fetching leagues:', err);
+    }
+  };
+
   useEffect(() => {
     if (!showLogin && activeTab === 'draft') {
       loadDraftRecommendations();
@@ -75,6 +102,21 @@ function App() {
   useEffect(() => {
     // Verificar si viene de Yahoo OAuth
     const hash = window.location.hash;
+    
+    // Check for sessionId in hash
+    const sessionMatch = hash.match(/[?&]session=([^&#]*)/i) || hash.match(/#session=([^&#]*)/i);
+    if (sessionMatch) {
+      const sessionId = sessionMatch[1];
+      // Store in localStorage
+      localStorage.setItem('yahoo_session', sessionId);
+      // Fetch leagues
+      fetchLeagues(sessionId);
+      // Clean the hash
+      window.location.hash = '';
+      setShowLogin(false);
+      return;
+    }
+    
     if (hash === '#yahoo-success') {
       setShowLogin(false);
       // Limpiar el hash
@@ -84,6 +126,12 @@ function App() {
     } else if (hash === '#yahoo-error') {
       alert('Yahoo connection failed. Please try again.');
       window.location.hash = '';
+    }
+    
+    // Check if there's a stored sessionId on component mount
+    const storedSession = localStorage.getItem('yahoo_session');
+    if (storedSession) {
+      fetchLeagues(storedSession);
     }
   }, []);
 
