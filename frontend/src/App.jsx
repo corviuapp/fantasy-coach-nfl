@@ -36,30 +36,41 @@ function App() {
         const data = await response.json();
         
         if (data.fantasy_content && data.fantasy_content.team) {
-          const teamData = data.fantasy_content.team[1];
-          if (teamData && teamData.roster && teamData.roster[0] && teamData.roster[0].players) {
-            const playersObj = teamData.roster[0].players;
-            const playersList = [];
-            
-            // Parse players from the API response
-            for (const key in playersObj) {
-              if (key !== 'count' && playersObj[key].player) {
-                const player = playersObj[key].player[0];
-                const playerInfo = playersObj[key].player[1];
-                
-                playersList.push({
-                  player_id: player.player_id,
-                  name: playerInfo.name.full,
-                  team: playerInfo.editorial_team_abbr,
-                  position: playerInfo.display_position,
-                  selected_position: playerInfo.selected_position ? playerInfo.selected_position[1].position : 'BN',
-                  status: playerInfo.status || null
-                });
+          const rosterData = data.fantasy_content.team[1].roster;
+          const starters = [];
+          const bench = [];
+          
+          // Iterate over numeric keys in roster (0, 1, 2, etc)
+          for (const key in rosterData) {
+            if (!isNaN(key)) {
+              const playerData = rosterData[key].players[0].player;
+              const playerInfo = playerData[1];
+              const selectedPosition = playerData[1].selected_position[1].position;
+              
+              const player = {
+                name: playerInfo.name.full,
+                team: playerInfo.editorial_team_abbr,
+                position: playerInfo.display_position,
+                status: playerInfo.status || null
+              };
+              
+              // Separate into starters and bench based on position
+              if (selectedPosition === 'BN') {
+                bench.push(player);
+              } else {
+                starters.push(player);
               }
             }
-            
-            setRoster(playersList);
           }
+          
+          // Combine arrays for backward compatibility with existing code
+          const playersList = [...starters, ...bench].map((player, index) => ({
+            ...player,
+            player_id: index + 1, // Add player_id for existing display code
+            selected_position: starters.includes(player) ? player.position : 'BN'
+          }));
+          
+          setRoster(playersList);
         }
       } catch (err) {
         console.error('Error fetching roster:', err);
