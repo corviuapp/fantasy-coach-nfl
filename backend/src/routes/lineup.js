@@ -18,17 +18,25 @@ router.post('/optimize', async (req, res) => {
     const playersWithMatchups = await analyzeMatchups(playersWithProjections);
     
     // Usar Groq para analizar los datos
-    const completion = await groq.chat.completions.create({
-      messages: [{
-        role: 'user',
-        content: `Analiza los siguientes datos de jugadores de fantasy football y proporciona recomendaciones de lineup optimizado. Devuelve una respuesta en formato JSON con las siguientes propiedades: lineup_optimizado (array de jugadores recomendados para iniciar), cambios_sugeridos (array de cambios recomendados), y explicaciones (array de explicaciones detalladas para cada decisión). Datos: ${JSON.stringify(playersWithMatchups)}`
-      }],
-      model: 'mixtral-8x7b-32768',
-      temperature: 0.7,
-      response_format: { type: 'json_object' }
-    });
+    console.log('About to call Groq with roster length:', playersWithMatchups.length);
     
-    const groqResponse = JSON.parse(completion.choices[0].message.content);
+    let groqResponse = null;
+    try {
+      const completion = await groq.chat.completions.create({
+        messages: [{
+          role: 'user',
+          content: `Analiza los siguientes datos de jugadores de fantasy football y proporciona recomendaciones de lineup optimizado. Devuelve una respuesta en formato JSON con las siguientes propiedades: lineup_optimizado (array de jugadores recomendados para iniciar), cambios_sugeridos (array de cambios recomendados), y explicaciones (array de explicaciones detalladas para cada decisión). Datos: ${JSON.stringify(playersWithMatchups)}`
+        }],
+        model: 'mixtral-8x7b-32768',
+        temperature: 0.7,
+        response_format: { type: 'json_object' }
+      });
+      
+      groqResponse = JSON.parse(completion.choices[0].message.content);
+    } catch (error) {
+      console.error('Groq API error:', error.message);
+      groqResponse = null;
+    }
     const optimizedLineup = groqResponse || await generateOptimizedLineup(playersWithMatchups);
 
     res.json({
