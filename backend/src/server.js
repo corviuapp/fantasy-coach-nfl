@@ -156,7 +156,7 @@ app.get('/auth/yahoo/callback', async (req, res) => {
     });
     
     // 4) Redirigir al frontend con el sessionId como parámetro
-    res.redirect(`https://frontend-production-f269.up.railway.app#yahoo-success?sessionId=${sessionId}`);
+    res.redirect(`https://frontend-production-f269.up.railway.app#yahoo-success?session=${sessionId}`);
   } catch (error) {
     console.error('Yahoo auth error:', error);
     res.redirect('https://frontend-production-f269.up.railway.app#yahoo-error');
