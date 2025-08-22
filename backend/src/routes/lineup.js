@@ -365,15 +365,33 @@ function optimizeWithPositionConstraints(players, rosterPositions) {
   // Fill required positions first
   const startingPositions = rosterPositions.filter(pos => pos.is_starting_position);
   
+  // Track how many players we've used for each position
+  const positionCounts = {};
+  
   for (const posReq of startingPositions) {
     const { position, count } = posReq;
     let filled = 0;
     
     for (let i = availablePlayers.length - 1; i >= 0 && filled < count; i--) {
       const player = availablePlayers[i];
+      const playerPos = player.display_position || player.position;
       
       // Check if player can fill this position
       if (canPlayerFillPosition(player, position)) {
+        // For non-FLEX positions, ensure we don't exceed individual position limits
+        if (position !== 'W/R/T' && position !== 'W/R' && position !== 'BN') {
+          // Count how many of this specific position we already have
+          const currentPosCount = positionCounts[playerPos] || 0;
+          const maxForPosition = getMaxPlayersForPosition(playerPos);
+          
+          // Skip if we already have enough of this position
+          if (currentPosCount >= maxForPosition) {
+            continue;
+          }
+          
+          positionCounts[playerPos] = currentPosCount + 1;
+        }
+        
         player.optimized_position = position;
         lineup.push(player);
         availablePlayers.splice(i, 1);
@@ -383,6 +401,19 @@ function optimizeWithPositionConstraints(players, rosterPositions) {
   }
   
   return lineup;
+}
+
+// Helper function to define max players per position in a standard lineup
+function getMaxPlayersForPosition(position) {
+  const limits = {
+    'QB': 1,
+    'RB': 2,
+    'WR': 2,
+    'TE': 1,
+    'K': 1,
+    'DEF': 1
+  };
+  return limits[position] || 99; // Allow unlimited for positions not in limits (like FLEX)
 }
 
 function canPlayerFillPosition(player, requiredPosition) {

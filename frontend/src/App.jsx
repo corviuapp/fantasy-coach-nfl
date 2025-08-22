@@ -41,11 +41,11 @@ function App() {
         console.log('Raw roster data:', JSON.stringify(data, null, 2));
         
         try {
-          const team = data?.fantasy_content?.team;
-          console.log('Team structure:', team);
+          const roster = data?.roster;
+          console.log('Roster structure:', roster);
           
-          if (team && team[1] && team[1].roster && team[1].roster[0] && team[1].roster[0].players) {
-            const playersData = team[1].roster[0].players;
+          if (roster && roster[0] && roster[0].players) {
+            const playersData = roster[0].players;
             console.log('Raw roster data:', playersData);
             
             const players = [];
@@ -72,7 +72,7 @@ function App() {
             console.log('Processed players:', players);
             setRoster(players);
           } else {
-            console.log('No roster found in team structure');
+            console.log('No roster found in roster structure');
             setRoster([]);
           }
           setLoading(false);
