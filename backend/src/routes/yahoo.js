@@ -3,6 +3,10 @@ import axios from 'axios';
 import { YahooService } from '../../YahooService.js';
 import { v4 as uuidv4 } from 'uuid';
 
+// Global variables to store tokens
+let globalAccessToken = null;
+let globalRefreshToken = null;
+
 const router = express.Router();
 const yahooService = new YahooService();
 
@@ -286,6 +290,10 @@ router.get('/callback', async (req, res) => {
       console.log('3. The 2025 season (game key 461) may not be fully active yet');
       console.log('===============\\n');
       
+      // Store tokens globally
+      globalAccessToken = tokenData.access_token;
+      globalRefreshToken = tokenData.refresh_token;
+      
       // Store session data
       sessionId = uuidv4();
       const { sessionStore } = await import('../../server.js');
@@ -302,11 +310,8 @@ router.get('/callback', async (req, res) => {
     // Get environment variable for frontend URL
     const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
     
-    // Redirecting to frontend
-    const redirectUrl = tokenData.access_token ? 
-      `${FRONTEND_URL}/#yahoo-auth?accessToken=${tokenData.access_token}&refreshToken=${tokenData.refresh_token}` : 
-      `${FRONTEND_URL}/#yahoo-success=true`;
-    res.redirect(redirectUrl);
+    // Simple redirect to frontend
+    res.redirect(`${FRONTEND_URL}/#yahoo-success`);
     
   } catch (error) {
     console.error('Error getting token:', error.message);
@@ -317,14 +322,22 @@ router.get('/callback', async (req, res) => {
   }
 });
 
+// Get stored tokens endpoint
+router.get('/get-tokens', (req, res) => {
+  res.json({
+    accessToken: globalAccessToken,
+    refreshToken: globalRefreshToken
+  });
+});
+
 router.get("/leagues", async (req, res) => {
   try {
-    // Accept accessToken from query parameter or session
-    const accessToken = req.query.accessToken || req.session?.accessToken;
+    // Accept accessToken from query parameter or use global token
+    const accessToken = req.query.accessToken || globalAccessToken;
     
     if (!accessToken) {
       return res.status(401).json({ 
-        error: 'Access token required - provide accessToken query parameter or valid session' 
+        error: 'Access token required - provide accessToken query parameter or authenticate first' 
       });
     }
     const url = "https://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1/teams?format=json";
@@ -366,21 +379,18 @@ router.get("/leagues", async (req, res) => {
 // Get teams in a league
 router.get('/teams', async (req, res) => {
   try {
-    const { sessionId, leagueKey } = req.query;
+    const { leagueKey } = req.query;
+    const accessToken = req.query.accessToken || globalAccessToken;
     
-    if (!sessionId || !leagueKey) {
+    if (!leagueKey) {
       return res.status(400).json({ 
-        error: 'sessionId and leagueKey are required parameters' 
+        error: 'leagueKey is required parameter' 
       });
     }
     
-    // Get session
-    const { sessionStore } = await import('../../server.js');
-    const tokenData = sessionStore.get(sessionId);
-    
-    if (!tokenData) {
+    if (!accessToken) {
       return res.status(401).json({ 
-        error: 'Invalid or expired session' 
+        error: 'Access token required - provide accessToken query parameter or authenticate first' 
       });
     }
     
@@ -389,7 +399,7 @@ router.get('/teams', async (req, res) => {
       `https://fantasysports.yahooapis.com/fantasy/v2/league/${leagueKey}/teams?format=json`,
       {
         headers: {
-          'Authorization': `Bearer ${tokenData.access_token}`,
+          'Authorization': `Bearer ${accessToken}`,
           'Accept': 'application/json'
         }
       }
@@ -436,22 +446,19 @@ router.get('/teams', async (req, res) => {
 // Get user roster
 router.get('/roster', async (req, res) => {
   try {
-    const { sessionId, leagueKey, teamKey } = req.query;
+    const { leagueKey, teamKey } = req.query;
+    const accessToken = req.query.accessToken || globalAccessToken;
     
-    // Validar que existan ambos parámetros
-    if (!sessionId || !leagueKey) {
+    // Validar que existan los parámetros requeridos
+    if (!leagueKey) {
       return res.status(400).json({ 
-        error: 'sessionId and leagueKey are required parameters' 
+        error: 'leagueKey is required parameter' 
       });
     }
     
-    // Obtener la sesión del sessionStore
-    const { sessionStore } = await import('../../server.js');
-    const tokenData = sessionStore.get(sessionId);
-    
-    if (!tokenData) {
+    if (!accessToken) {
       return res.status(401).json({ 
-        error: 'Invalid or expired session' 
+        error: 'Access token required - provide accessToken query parameter or authenticate first' 
       });
     }
     
@@ -460,7 +467,7 @@ router.get('/roster', async (req, res) => {
       `https://fantasysports.yahooapis.com/fantasy/v2/league/${leagueKey}/teams?format=json`,
       {
         headers: {
-          'Authorization': `Bearer ${tokenData.access_token}`,
+          'Authorization': `Bearer ${accessToken}`,
           'Accept': 'application/json'
         }
       }
@@ -479,7 +486,7 @@ router.get('/roster', async (req, res) => {
       'https://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1?format=json',
       {
         headers: {
-          'Authorization': `Bearer ${tokenData.access_token}`,
+          'Authorization': `Bearer ${accessToken}`,
           'Accept': 'application/json'
         }
       }
@@ -540,7 +547,7 @@ router.get('/roster', async (req, res) => {
             `https://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1/games/leagues;league_keys=${leagueKey}/teams?format=json`,
             {
               headers: {
-                'Authorization': `Bearer ${tokenData.access_token}`,
+                'Authorization': `Bearer ${accessToken}`,
                 'Accept': 'application/json'
               }
             }
@@ -575,7 +582,7 @@ router.get('/roster', async (req, res) => {
       `https://fantasysports.yahooapis.com/fantasy/v2/team/${targetTeamKey}/roster?format=json`,
       {
         headers: {
-          'Authorization': `Bearer ${tokenData.access_token}`,
+          'Authorization': `Bearer ${accessToken}`,
           'Accept': 'application/json'
         }
       }

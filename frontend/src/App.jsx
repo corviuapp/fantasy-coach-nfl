@@ -29,18 +29,19 @@ function App() {
     const [recommendationsLoading, setRecommendationsLoading] = useState(false);
     const [selectedTeam, setSelectedTeam] = useState('');
 
-    const sessionId = localStorage.getItem('yahoo_accessToken');
+    const accessToken = localStorage.getItem('yahoo_accessToken');
     const availableLeagues = leagues.filter(league => league.draft_status === 'postdraft');
 
 
     const fetchRoster = async (leagueKey, teamKey = null) => {
-      if (!sessionId || !leagueKey) return;
+      const accessToken = localStorage.getItem('yahoo_accessToken');
+      if (!accessToken || !leagueKey) return;
       
       setLoading(true);
       try {
         const url = teamKey ? 
-          `https://backend-production-5421.up.railway.app/api/yahoo/roster?accessToken=${sessionId}&leagueKey=${leagueKey}&teamKey=${teamKey}` :
-          `https://backend-production-5421.up.railway.app/api/yahoo/roster?accessToken=${sessionId}&leagueKey=${leagueKey}`;
+          `https://backend-production-5421.up.railway.app/api/yahoo/roster?accessToken=${accessToken}&leagueKey=${leagueKey}&teamKey=${teamKey}` :
+          `https://backend-production-5421.up.railway.app/api/yahoo/roster?accessToken=${accessToken}&leagueKey=${leagueKey}`;
         
         console.log(`🚨 FRONTEND DEBUG: Llamando a roster con:`);
         console.log(`   - leagueKey: ${leagueKey}`);
@@ -146,6 +147,7 @@ function App() {
       setError('');
       
       try {
+        const accessToken = localStorage.getItem('yahoo_accessToken');
         const response = await fetch("https://backend-production-5421.up.railway.app/api/lineup/optimize", {
           method: 'POST',
           credentials: "include",
@@ -155,7 +157,7 @@ function App() {
           body: JSON.stringify({
             roster: roster,
             leagueKey: selectedLeague,
-            accessToken: sessionId
+            accessToken: accessToken
           })
         });
         
@@ -186,7 +188,7 @@ function App() {
       <>
         <h2 className="text-2xl font-bold text-gray-900 mb-6">Start/Sit Analyzer</h2>
         
-        {!sessionId ? (
+        {!accessToken ? (
           <div className="bg-white rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200">
             <p className="text-center text-gray-600 py-10">
               🔗 Please connect your Yahoo account to access Start/Sit recommendations
@@ -674,14 +676,31 @@ function App() {
     }
     
     if (hash.includes('yahoo-success')) {
-      const urlParams = new URLSearchParams(hash.split('?')[1]);
-      const accessToken = urlParams.get('accessToken');
-      if (accessToken) {
-        console.log('Yahoo accessToken detected:', accessToken);
-        localStorage.setItem('yahoo_accessToken', accessToken);
-        setShowLogin(false);
-        fetchLeagues(accessToken);
-      }
+      // Fetch tokens from backend endpoint
+      fetch('https://backend-production-5421.up.railway.app/api/yahoo/get-tokens', {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.accessToken) {
+          console.log('Yahoo accessToken received from backend:', data.accessToken);
+          localStorage.setItem('yahoo_accessToken', data.accessToken);
+          setShowLogin(false);
+          fetchLeagues(data.accessToken);
+        } else {
+          console.error('No accessToken received from backend');
+          alert('Authentication failed. Please try again.');
+        }
+      })
+      .catch(err => {
+        console.error('Error fetching tokens:', err);
+        alert('Error fetching authentication tokens. Please try again.');
+      });
+      
       window.location.hash = '';
     } else if (hash === '#yahoo-error') {
       alert('Yahoo connection failed. Please try again.');
