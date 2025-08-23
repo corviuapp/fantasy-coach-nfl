@@ -288,6 +288,10 @@ router.get('/callback', async (req, res) => {
 
 // Get user leagues - ENDPOINT SEPARADO
 router.get('/leagues', async (req, res) => {
+  console.log("========== ENDPOINT /leagues LLAMADO ==========");
+  console.log("Session:", req.session);
+  console.log("Access Token existe:", !!req.session.accessToken);
+  
   try {
     console.log("=== INICIANDO DETECCION DE LIGAS Y EQUIPOS ===");
     
@@ -311,6 +315,7 @@ router.get('/leagues', async (req, res) => {
     
     // Obtener las ligas de Yahoo
     console.log('Obteniendo ligas desde Yahoo API...');
+    console.log('URL llamada por yahooService.getUserLeagues');
     const leaguesData = await yahooService.getUserLeagues(tokenData.access_token);
     
     // Para cada liga, hacer llamada adicional para obtener teams
@@ -328,6 +333,7 @@ router.get('/leagues', async (req, res) => {
           
           try {
             // Hacer llamada específica para obtener teams de esta liga
+            console.log(`URL a llamar: https://fantasysports.yahooapis.com/fantasy/v2/league/${league_key}/teams?format=json`);
             const teamsResponse = await axios.get(
               `https://fantasysports.yahooapis.com/fantasy/v2/league/${league_key}/teams?format=json`,
               {
