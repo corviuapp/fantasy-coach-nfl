@@ -309,7 +309,7 @@ router.get('/leagues', async (req, res) => {
     
     const leaguesData = await yahooService.getUserLeagues(tokenData.access_token);
     
-    // Enrich leagues data with user's team information
+    // Process leagues data to extract user's team information
     try {
       // Get user GUID for team matching
       const userResponse = await axios.get(
@@ -325,7 +325,7 @@ router.get('/leagues', async (req, res) => {
       const userGuid = userResponse.data?.fantasy_content?.users?.[0]?.user?.[0]?.guid;
       console.log(`🚨 LEAGUES ENDPOINT - User GUID: ${userGuid}`);
       
-      // Add user team information to the response
+      // Process leagues data that now includes teams thanks to ;out=teams
       if (leaguesData.fantasy_content?.users?.[0]?.user?.[1]?.games?.['0']?.game?.[1]?.leagues) {
         const leagues = leaguesData.fantasy_content.users[0].user[1].games['0'].game[1].leagues;
         
@@ -334,33 +334,23 @@ router.get('/leagues', async (req, res) => {
             const league = leagues[key].league[0];
             console.log(`🚨 LEAGUES - Procesando liga: ${league.name} (${league.league_key})`);
             
-            // Try to get teams for this league and find user's team
-            try {
-              const teamsResponse = await axios.get(
-                `https://fantasysports.yahooapis.com/fantasy/v2/league/${league.league_key}/teams?format=json`,
-                {
-                  headers: {
-                    'Authorization': `Bearer ${tokenData.access_token}`,
-                    'Accept': 'application/json'
-                  }
-                }
-              );
-              
-              const teams = teamsResponse.data?.fantasy_content?.league?.[1]?.teams;
-              if (teams) {
-                for (let i = 0; i < teams.length; i++) {
-                  const team = teams[i]?.team?.[0];
-                  if (team && team.owner_guid === userGuid) {
-                    // Add user's team_key to league data
-                    league.user_team_key = team.team_key;
-                    league.user_team_name = team.name;
-                    console.log(`   ✅ Found user team: ${team.name} (${team.team_key})`);
-                    break;
-                  }
+            // Extract teams data from the league response (now included thanks to ;out=teams)
+            const teamsData = leagues[key].league[1]?.teams;
+            
+            if (teamsData) {
+              // Find user's team in the teams data
+              for (let i = 0; i < teamsData.length; i++) {
+                const team = teamsData[i]?.team?.[0];
+                if (team && team.owner_guid === userGuid) {
+                  // Add user's team_key to league data
+                  league.user_team_key = team.team_key;
+                  league.user_team_name = team.name;
+                  console.log(`   ✅ Found user team: ${team.name} (${team.team_key})`);
+                  break;
                 }
               }
-            } catch (teamErr) {
-              console.log(`   ❌ Error getting teams for league ${league.league_key}:`, teamErr.response?.status);
+            } else {
+              console.log(`   ⚠️ No teams data found in league ${league.league_key}`);
             }
           }
         }
