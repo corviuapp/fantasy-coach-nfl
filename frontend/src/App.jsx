@@ -677,7 +677,7 @@ function App() {
     
     if (hash.includes('yahoo-success')) {
       // Fetch tokens from backend endpoint
-      fetch('https://backend-production-5421.up.railway.app/api/yahoo/get-tokens', {
+      fetch('https://backend-production-5421.up.railway.app/api/auth/yahoo/get-tokens', {
         method: 'GET',
         credentials: 'include',
         headers: {
