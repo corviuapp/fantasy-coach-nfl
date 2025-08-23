@@ -307,59 +307,80 @@ router.get('/leagues', async (req, res) => {
       });
     }
     
+    // PASO 1: Obtener las ligas usando el método actual
+    console.log('🚨 Step 1: Getting leagues data...');
     const leaguesData = await yahooService.getUserLeagues(tokenData.access_token);
     
-    // Process leagues data to extract user's team information
+    // PASO 2: Para cada liga, hacer llamada adicional para obtener teams
     try {
-      console.log('🚨 Processing leagues data to find user teams...');
+      console.log('🚨 Step 2: Enriching leagues with user team data...');
       
-      // Process leagues data with new URL structure that includes teams
       if (leaguesData.fantasy_content?.users?.[0]?.user?.[1]?.games?.['0']?.game?.[1]?.leagues) {
         const leagues = leaguesData.fantasy_content.users[0].user[1].games['0'].game[1].leagues;
         
+        // Process each league
         for (const key in leagues) {
           if (key !== 'count' && leagues[key].league) {
             const leagueData = leagues[key].league;
             const league = leagueData[0];
-            console.log(`🚨 LEAGUES - Processing league: ${league.name} (${league.league_key})`);
+            const league_key = league.league_key;
             
-            // The new URL includes /teams, so teams should be in the response
-            const teamsData = leagueData[1]?.teams;
+            console.log(`🚨 Processing league: ${league.name} (${league_key})`);
             
-            if (teamsData && teamsData.length > 0) {
-              console.log(`🚨 Found ${teamsData.length} teams in league ${league.league_key}`);
-              
-              // Iterate through teams to find the one with is_owned_by_current_login = 1
-              for (let i = 0; i < teamsData.length; i++) {
-                const team = teamsData[i]?.team?.[0];
-                if (team) {
-                  console.log(`   Team ${i+1}: ${team.name} (${team.team_key}) - is_owned_by_current_login: ${team.is_owned_by_current_login}`);
-                  
-                  // Check if this is the user's team (can be string "1" or number 1)
-                  if (team.is_owned_by_current_login === "1" || team.is_owned_by_current_login === 1) {
-                    // Save the team_key in the league object
-                    league.team_key = team.team_key;
-                    league.team_id = team.team_id;
-                    league.team_name = team.name;
-                    console.log(`   ✅ Found user team: ${team.name} (${team.team_key}, ID: ${team.team_id})`);
-                    break;
+            try {
+              // Hacer llamada específica para obtener teams de esta liga
+              const teamsResponse = await axios.get(
+                `https://fantasysports.yahooapis.com/fantasy/v2/league/${league_key}/teams?format=json`,
+                {
+                  headers: {
+                    'Authorization': `Bearer ${tokenData.access_token}`,
+                    'Accept': 'application/json'
                   }
                 }
+              );
+              
+              const teams = teamsResponse.data?.fantasy_content?.league?.[1]?.teams;
+              
+              if (teams && teams.length > 0) {
+                console.log(`   Found ${teams.length} teams in league ${league_key}`);
+                
+                // Buscar el team del usuario (is_owned_by_current_login: 1)
+                let userTeamFound = false;
+                for (let i = 0; i < teams.length; i++) {
+                  const team = teams[i]?.team?.[0];
+                  if (team) {
+                    console.log(`   Team ${i+1}: ${team.name} (${team.team_key}) - is_owned_by_current_login: ${team.is_owned_by_current_login}`);
+                    
+                    // Verificar si este es el team del usuario
+                    if (team.is_owned_by_current_login === "1" || team.is_owned_by_current_login === 1) {
+                      // Guardar team_key y team_name en el objeto de la liga
+                      league.team_key = team.team_key;
+                      league.team_name = team.name;
+                      console.log(`   ✅ Found user team: ${team.name} (${team.team_key})`);
+                      userTeamFound = true;
+                      break;
+                    }
+                  }
+                }
+                
+                if (!userTeamFound) {
+                  console.log(`   ⚠️ No user team found in league ${league_key}`);
+                }
+              } else {
+                console.log(`   ⚠️ No teams data found in league ${league_key}`);
               }
               
-              if (!league.team_key) {
-                console.log(`   ⚠️ No user team found in league ${league.league_key}`);
-              }
-            } else {
-              console.log(`   ⚠️ No teams data found in league ${league.league_key}`);
+            } catch (teamError) {
+              console.error(`   ❌ Error fetching teams for league ${league_key}:`, teamError.response?.status, teamError.message);
+              // Continuar con la siguiente liga sin fallar completamente
             }
           }
         }
       }
       
-    } catch (enrichErr) {
-      console.log('❌ Error enriching leagues data:', enrichErr.response?.status, enrichErr.message);
-      // Continue without enrichment
+    } catch (enrichError) {
+      console.error('❌ Error enriching leagues data:', enrichError.response?.status, enrichError.message);
+      // Continuar sin el enriquecimiento
     }
     
     res.json(leaguesData);
