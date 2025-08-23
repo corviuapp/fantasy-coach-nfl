@@ -49,7 +49,7 @@ export class YahooService {
   async getUserLeagues(accessToken) {
     try {
       const response = await axios.get(
-        'https://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1/games;game_keys=nfl/leagues;out=teams?format=json',
+        'https://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1/games;game_keys=nfl/leagues;out=teams,standings,settings?format=json',
         {
           headers: {
             'Authorization': `Bearer ${accessToken}`,
@@ -58,10 +58,50 @@ export class YahooService {
         }
       );
 
-      console.log('🚨 Yahoo API Response (includes teams):', JSON.stringify(response.data, null, 2));
+      console.log('🚨 DETAILED YAHOO API RESPONSE - Full Raw Data:');
+      console.log('='.repeat(80));
+      console.log(JSON.stringify(response.data, null, 2));
+      console.log('='.repeat(80));
+      
+      // Additional targeted logging for teams detection
+      if (response.data?.fantasy_content?.users?.[0]?.user?.[1]?.games?.['0']?.game?.[1]?.leagues) {
+        const leagues = response.data.fantasy_content.users[0].user[1].games['0'].game[1].leagues;
+        console.log('🔍 LEAGUES ANALYSIS:');
+        
+        for (const key in leagues) {
+          if (key !== 'count' && leagues[key]?.league) {
+            const leagueData = leagues[key].league;
+            const league = leagueData[0];
+            const teamsData = leagueData[1]?.teams;
+            
+            console.log(`📊 League: ${league?.name} (${league?.league_key})`);
+            console.log(`   Teams data present: ${teamsData ? 'YES' : 'NO'}`);
+            
+            if (teamsData) {
+              console.log(`   Number of teams: ${teamsData.length}`);
+              teamsData.forEach((teamWrapper, idx) => {
+                const team = teamWrapper?.team?.[0];
+                if (team) {
+                  console.log(`   Team ${idx + 1}: ${team.name} (${team.team_key})`);
+                  console.log(`      is_owned_by_current_login: ${team.is_owned_by_current_login}`);
+                  console.log(`      owner_guid: ${team.owner_guid}`);
+                }
+              });
+            }
+            console.log('');
+          }
+        }
+      } else {
+        console.log('❌ No leagues data found in expected structure');
+      }
+      
       return response.data;
     } catch (error) {
       console.error('Yahoo API error:', error);
+      if (error.response) {
+        console.error('Response status:', error.response.status);
+        console.error('Response data:', JSON.stringify(error.response.data, null, 2));
+      }
       throw error;
     }
   }
