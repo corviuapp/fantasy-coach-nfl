@@ -299,10 +299,13 @@ router.get('/callback', async (req, res) => {
       console.log('Session stored with ID:', sessionId);
     }
     
-    // Redirigir con éxito y pasar sessionId
+    // Get environment variable for frontend URL
+    const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+    
+    // Redirigir con éxito y pasar accessToken y refreshToken
     const redirectUrl = sessionId ? 
-      `http://localhost:5173/#sessionId=${sessionId}` : 
-      'http://localhost:5173/#yahoo-success=true';
+      `${FRONTEND_URL}/#yahoo-auth?accessToken=${tokenData.access_token}&refreshToken=${tokenData.refresh_token}` : 
+      `${FRONTEND_URL}/#yahoo-success=true`;
     res.redirect(redirectUrl);
     
   } catch (error) {
@@ -314,9 +317,16 @@ router.get('/callback', async (req, res) => {
   }
 });
 
-router.get("/leagues", requireAuth, async (req, res) => {
+router.get("/leagues", async (req, res) => {
   try {
-    const { accessToken } = req.session;
+    // Accept accessToken from query parameter or session
+    const accessToken = req.query.accessToken || req.session?.accessToken;
+    
+    if (!accessToken) {
+      return res.status(401).json({ 
+        error: 'Access token required - provide accessToken query parameter or valid session' 
+      });
+    }
     const url = "https://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1/teams?format=json";
     
     const response = await axios.get(url, {

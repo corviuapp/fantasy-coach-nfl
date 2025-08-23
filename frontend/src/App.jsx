@@ -29,7 +29,7 @@ function App() {
     const [recommendationsLoading, setRecommendationsLoading] = useState(false);
     const [selectedTeam, setSelectedTeam] = useState('');
 
-    const sessionId = localStorage.getItem('yahoo_sessionId');
+    const sessionId = localStorage.getItem('yahoo_accessToken');
     const availableLeagues = leagues.filter(league => league.draft_status === 'postdraft');
 
 
@@ -39,8 +39,8 @@ function App() {
       setLoading(true);
       try {
         const url = teamKey ? 
-          `https://backend-production-5421.up.railway.app/api/yahoo/roster?sessionId=${sessionId}&leagueKey=${leagueKey}&teamKey=${teamKey}` :
-          `https://backend-production-5421.up.railway.app/api/yahoo/roster?sessionId=${sessionId}&leagueKey=${leagueKey}`;
+          `https://backend-production-5421.up.railway.app/api/yahoo/roster?accessToken=${sessionId}&leagueKey=${leagueKey}&teamKey=${teamKey}` :
+          `https://backend-production-5421.up.railway.app/api/yahoo/roster?accessToken=${sessionId}&leagueKey=${leagueKey}`;
         
         console.log(`🚨 FRONTEND DEBUG: Llamando a roster con:`);
         console.log(`   - leagueKey: ${leagueKey}`);
@@ -155,7 +155,7 @@ function App() {
           body: JSON.stringify({
             roster: roster,
             leagueKey: selectedLeague,
-            sessionId: sessionId
+            accessToken: sessionId
           })
         });
         
@@ -583,9 +583,9 @@ function App() {
     }
   };
 
-  const fetchLeagues = async (sessionId) => {
+  const fetchLeagues = async (accessToken) => {
     try {
-      const response = await fetch(`https://backend-production-5421.up.railway.app/api/yahoo/leagues?sessionId=${sessionId}`, {
+      const response = await fetch(`https://backend-production-5421.up.railway.app/api/yahoo/leagues?accessToken=${accessToken}`, {
         method: "GET",
         credentials: "include",
         headers: {
@@ -659,14 +659,14 @@ function App() {
     // Verificar si viene de Yahoo OAuth
     const hash = window.location.hash;
     
-    // Check for sessionId in hash
-    const sessionMatch = hash.match(/[?&]sessionId=([^&#]*)/i) || hash.match(/#sessionId=([^&#]*)/i);
-    if (sessionMatch) {
-      const sessionId = sessionMatch[1];
+    // Check for accessToken in hash
+    const accessTokenMatch = hash.match(/[?&]accessToken=([^&#]*)/i) || hash.match(/#accessToken=([^&#]*)/i);
+    if (accessTokenMatch) {
+      const accessToken = accessTokenMatch[1];
       // Store in localStorage
-      localStorage.setItem('yahoo_sessionId', sessionId);
+      localStorage.setItem('yahoo_accessToken', accessToken);
       // Fetch leagues
-      fetchLeagues(sessionId);
+      fetchLeagues(accessToken);
       // Clean the hash
       window.location.hash = '';
       setShowLogin(false);
@@ -675,12 +675,12 @@ function App() {
     
     if (hash.includes('yahoo-success')) {
       const urlParams = new URLSearchParams(hash.split('?')[1]);
-      const sessionId = urlParams.get('sessionId');
-      if (sessionId) {
-        console.log('Yahoo session detected:', sessionId);
-        localStorage.setItem('yahoo_sessionId', sessionId);
+      const accessToken = urlParams.get('accessToken');
+      if (accessToken) {
+        console.log('Yahoo accessToken detected:', accessToken);
+        localStorage.setItem('yahoo_accessToken', accessToken);
         setShowLogin(false);
-        fetchLeagues(sessionId);
+        fetchLeagues(accessToken);
       }
       window.location.hash = '';
     } else if (hash === '#yahoo-error') {
@@ -688,10 +688,10 @@ function App() {
       window.location.hash = '';
     }
     
-    // Check if there's a stored sessionId on component mount
-    const storedSession = localStorage.getItem('yahoo_sessionId');
-    if (storedSession) {
-      fetchLeagues(storedSession);
+    // Check if there's a stored accessToken on component mount
+    const storedAccessToken = localStorage.getItem('yahoo_accessToken');
+    if (storedAccessToken) {
+      fetchLeagues(storedAccessToken);
     }
   }, []);
 
