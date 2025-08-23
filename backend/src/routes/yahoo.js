@@ -311,19 +311,7 @@ router.get('/leagues', async (req, res) => {
     
     // Process leagues data to extract user's team information
     try {
-      // Get user GUID for team matching
-      const userResponse = await axios.get(
-        'https://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1?format=json',
-        {
-          headers: {
-            'Authorization': `Bearer ${tokenData.access_token}`,
-            'Accept': 'application/json'
-          }
-        }
-      );
-      
-      const userGuid = userResponse.data?.fantasy_content?.users?.[0]?.user?.[0]?.guid;
-      console.log(`🚨 LEAGUES ENDPOINT - User GUID: ${userGuid}`);
+      console.log('🚨 Processing leagues data to find user teams...');
       
       // Process leagues data that now includes teams thanks to ;out=teams
       if (leaguesData.fantasy_content?.users?.[0]?.user?.[1]?.games?.['0']?.game?.[1]?.leagues) {
@@ -332,22 +320,34 @@ router.get('/leagues', async (req, res) => {
         for (const key in leagues) {
           if (key !== 'count' && leagues[key].league) {
             const league = leagues[key].league[0];
-            console.log(`🚨 LEAGUES - Procesando liga: ${league.name} (${league.league_key})`);
+            console.log(`🚨 LEAGUES - Processing league: ${league.name} (${league.league_key})`);
             
             // Extract teams data from the league response (now included thanks to ;out=teams)
             const teamsData = leagues[key].league[1]?.teams;
             
             if (teamsData) {
-              // Find user's team in the teams data
+              console.log(`🚨 Found ${teamsData.length} teams in league ${league.league_key}`);
+              
+              // Find user's team by looking for is_owned_by_current_login=1
               for (let i = 0; i < teamsData.length; i++) {
                 const team = teamsData[i]?.team?.[0];
-                if (team && team.owner_guid === userGuid) {
-                  // Add user's team_key to league data
-                  league.user_team_key = team.team_key;
-                  league.user_team_name = team.name;
-                  console.log(`   ✅ Found user team: ${team.name} (${team.team_key})`);
-                  break;
+                if (team) {
+                  console.log(`   Team ${i+1}: ${team.name} (${team.team_key}) - is_owned_by_current_login: ${team.is_owned_by_current_login}`);
+                  
+                  // Check if this is the user's team
+                  if (team.is_owned_by_current_login === "1" || team.is_owned_by_current_login === 1) {
+                    // Add user's team info to league data
+                    league.team_key = team.team_key;
+                    league.team_id = team.team_id;
+                    league.team_name = team.name;
+                    console.log(`   ✅ Found user team: ${team.name} (${team.team_key}, ID: ${team.team_id})`);
+                    break;
+                  }
                 }
+              }
+              
+              if (!league.team_key) {
+                console.log(`   ⚠️ No user team found in league ${league.league_key}`);
               }
             } else {
               console.log(`   ⚠️ No teams data found in league ${league.league_key}`);
@@ -357,7 +357,7 @@ router.get('/leagues', async (req, res) => {
       }
       
     } catch (enrichErr) {
-      console.log('❌ Error enriching leagues data:', enrichErr.response?.status);
+      console.log('❌ Error enriching leagues data:', enrichErr.response?.status, enrichErr.message);
       // Continue without enrichment
     }
     
