@@ -302,8 +302,8 @@ router.get('/callback', async (req, res) => {
     // Get environment variable for frontend URL
     const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
     
-    // Redirigir con éxito y pasar accessToken y refreshToken
-    const redirectUrl = sessionId ? 
+    // Redirecting to frontend
+    const redirectUrl = tokenData.access_token ? 
       `${FRONTEND_URL}/#yahoo-auth?accessToken=${tokenData.access_token}&refreshToken=${tokenData.refresh_token}` : 
       `${FRONTEND_URL}/#yahoo-success=true`;
     res.redirect(redirectUrl);
