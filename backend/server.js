@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import session from 'express-session';
 import dotenv from 'dotenv';
 import { createServer } from 'http';
 import pg from 'pg';
@@ -42,11 +43,30 @@ class FantasyCoachServer {
   }
 
   setupMiddleware() {
+    // Trust proxy (required for Railway deployment)
+    this.app.set('trust proxy', 1);
+
     // Security
     this.app.use(helmet());
     this.app.use(cors({
-      origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-      credentials: true
+      origin: "https://frontend-production-f269.up.railway.app",
+      credentials: true,
+      methods: ["GET", "POST", "PUT", "DELETE"],
+      allowedHeaders: ["Content-Type", "Authorization"]
+    }));
+
+    // Session configuration
+    this.app.use(session({
+      secret: process.env.SESSION_SECRET || 'fallback-secret-key',
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        secure: true,
+        sameSite: "none",
+        httpOnly: true,
+        domain: ".railway.app",
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+      }
     }));
 
     // Body parsing
