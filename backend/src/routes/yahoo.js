@@ -6,6 +6,34 @@ import { v4 as uuidv4 } from 'uuid';
 const router = express.Router();
 const yahooService = new YahooService();
 
+// Middleware to check authentication
+const requireAuth = (req, res, next) => {
+  const { sessionId } = req.query;
+  
+  if (!sessionId) {
+    return res.status(400).json({ 
+      error: 'sessionId is required' 
+    });
+  }
+  
+  // Get session from sessionStore
+  import('../../server.js').then(({ sessionStore }) => {
+    const tokenData = sessionStore.get(sessionId);
+    
+    if (!tokenData) {
+      return res.status(401).json({ 
+        error: 'Invalid or expired session' 
+      });
+    }
+    
+    // Add token to session for easy access
+    req.session = { accessToken: tokenData.access_token };
+    next();
+  }).catch(() => {
+    res.status(500).json({ error: 'Session error' });
+  });
+};
+
 // Generate Yahoo OAuth URL
 router.get('/', (req, res) => {
   const authUrl = yahooService.getAuthUrl();
@@ -286,120 +314,42 @@ router.get('/callback', async (req, res) => {
   }
 });
 
-// Get user leagues - ENDPOINT SEPARADO
-router.get('/leagues', async (req, res) => {
-  console.log("========== ENDPOINT /leagues LLAMADO ==========");
-  console.log("Session:", req.session);
-  console.log("Access Token existe:", !!req.session.accessToken);
-  
+router.get("/leagues", requireAuth, async (req, res) => {
   try {
-    console.log("=== INICIANDO DETECCION DE LIGAS Y EQUIPOS ===");
+    const { accessToken } = req.session;
+    const url = "https://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1/teams?format=json";
     
-    const { sessionId } = req.query;
-    
-    if (!sessionId) {
-      return res.status(400).json({ 
-        error: 'sessionId is required' 
-      });
-    }
-    
-    // Obtener la sesión del sessionStore
-    const { sessionStore } = await import('../../server.js');
-    const tokenData = sessionStore.get(sessionId);
-    
-    if (!tokenData) {
-      return res.status(401).json({ 
-        error: 'Invalid or expired session' 
-      });
-    }
-    
-    // Obtener las ligas de Yahoo
-    console.log('Obteniendo ligas desde Yahoo API...');
-    console.log('URL llamada por yahooService.getUserLeagues');
-    const leaguesData = await yahooService.getUserLeagues(tokenData.access_token);
-    
-    // Para cada liga, hacer llamada adicional para obtener teams
-    if (leaguesData.fantasy_content?.users?.[0]?.user?.[1]?.games?.['0']?.game?.[1]?.leagues) {
-      const leagues = leaguesData.fantasy_content.users[0].user[1].games['0'].game[1].leagues;
-      
-      // Process each league
-      for (const key in leagues) {
-        if (key !== 'count' && leagues[key].league) {
-          const leagueData = leagues[key].league;
-          const league = leagueData[0];
-          const league_key = league.league_key;
-          
-          console.log(`Procesando liga: ${league.name} (${league_key})`);
-          
-          try {
-            // Hacer llamada específica para obtener teams de esta liga
-            console.log(`URL a llamar: https://fantasysports.yahooapis.com/fantasy/v2/league/${league_key}/teams?format=json`);
-            const teamsResponse = await axios.get(
-              `https://fantasysports.yahooapis.com/fantasy/v2/league/${league_key}/teams?format=json`,
-              {
-                headers: {
-                  'Authorization': `Bearer ${tokenData.access_token}`,
-                  'Accept': 'application/json'
-                }
-              }
-            );
-            
-            // Imprimir toda la respuesta de teams en formato JSON
-            console.log(`Respuesta completa de teams para liga ${league_key}:`);
-            console.log(JSON.stringify(teamsResponse.data, null, 2));
-            
-            const teams = teamsResponse.data?.fantasy_content?.league?.[1]?.teams;
-            
-            if (teams && teams.length > 0) {
-              console.log(`Encontrados ${teams.length} teams en liga ${league_key}`);
-              
-              // Buscar el team con is_owned_by_current_login igual a 1
-              let userTeamFound = false;
-              for (let i = 0; i < teams.length; i++) {
-                const team = teams[i]?.team?.[0];
-                if (team) {
-                  console.log(`Team ${i+1}: ${team.name} (${team.team_key}) - is_owned_by_current_login: ${team.is_owned_by_current_login}`);
-                  
-                  // Verificar si este es el team del usuario
-                  if (team.is_owned_by_current_login === "1" || team.is_owned_by_current_login === 1) {
-                    // Guardar team_key y team_name en el objeto de la liga
-                    league.team_key = team.team_key;
-                    league.team_name = team.name;
-                    console.log(`✅ Encontrado equipo del usuario: ${team.name} (${team.team_key})`);
-                    userTeamFound = true;
-                    break;
-                  }
-                }
-              }
-              
-              if (!userTeamFound) {
-                console.log(`⚠️ No se encontró equipo del usuario en liga ${league_key}`);
-              }
-            } else {
-              console.log(`⚠️ No se encontraron datos de teams en liga ${league_key}`);
-            }
-            
-          } catch (teamError) {
-            console.error(`❌ Error obteniendo teams para liga ${league_key}:`, teamError.response?.status, teamError.message);
-            if (teamError.response?.data) {
-              console.error('Detalles del error:', JSON.stringify(teamError.response.data, null, 2));
-            }
-            // Continuar con la siguiente liga sin fallar completamente
-          }
+    const response = await axios.get(url, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+
+    const users = response.data?.fantasy_content?.users;
+    if (!users || !users[0]) return res.json([]);
+
+    const userTeams = users[0].user[1].teams;
+    const leaguesMap = {};
+
+    for (let i = 0; i < userTeams.count; i++) {
+      const team = userTeams[i].team[0];
+      if (team.game_key === "nfl") {
+        const leagueKey = team.league_key;
+        if (!leaguesMap[leagueKey]) {
+          leaguesMap[leagueKey] = {
+            league_key: leagueKey,
+            name: team.name,
+            url: team.url,
+            team_count: team.num_teams,
+            team_key: team.team_key,
+            team_name: team.name
+          };
         }
       }
     }
-    
-    res.json(leaguesData);
-    
+
+    return res.json(Object.values(leaguesMap));
   } catch (error) {
-    console.error('Error general obteniendo leagues:', error.message);
-    if (error.response?.data) {
-      console.error('Datos del error:', JSON.stringify(error.response.data, null, 2));
-    }
-    res.status(500).json({ 
-      error: 'Internal server error while fetching leagues' 
-    });
+    console.error("Error:", error);
+    res.status(500).json({ error: error.message });
   }
 });
 
