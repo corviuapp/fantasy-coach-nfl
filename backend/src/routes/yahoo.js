@@ -313,10 +313,9 @@ router.get('/leagues', async (req, res) => {
     try {
       console.log('🚨 Processing leagues data to find user teams...');
       
-      // Process leagues data that now includes teams thanks to ;out=teams,standings,settings
+      // Process leagues data with new URL structure that includes teams
       if (leaguesData.fantasy_content?.users?.[0]?.user?.[1]?.games?.['0']?.game?.[1]?.leagues) {
         const leagues = leaguesData.fantasy_content.users[0].user[1].games['0'].game[1].leagues;
-        const leaguesNeedingFallback = [];
         
         for (const key in leagues) {
           if (key !== 'count' && leagues[key].league) {
@@ -324,14 +323,13 @@ router.get('/leagues', async (req, res) => {
             const league = leagueData[0];
             console.log(`🚨 LEAGUES - Processing league: ${league.name} (${league.league_key})`);
             
-            // Extract teams data from the league response (now included thanks to ;out=teams)
+            // The new URL includes /teams, so teams should be in the response
             const teamsData = leagueData[1]?.teams;
             
             if (teamsData && teamsData.length > 0) {
               console.log(`🚨 Found ${teamsData.length} teams in league ${league.league_key}`);
               
-              // Find user's team by looking for is_owned_by_current_login=1
-              let userTeamFound = false;
+              // Iterate through teams to find the one with is_owned_by_current_login = 1
               for (let i = 0; i < teamsData.length; i++) {
                 const team = teamsData[i]?.team?.[0];
                 if (team) {
@@ -339,77 +337,21 @@ router.get('/leagues', async (req, res) => {
                   
                   // Check if this is the user's team (can be string "1" or number 1)
                   if (team.is_owned_by_current_login === "1" || team.is_owned_by_current_login === 1) {
-                    // Add user's team info to league data
+                    // Save the team_key in the league object
                     league.team_key = team.team_key;
                     league.team_id = team.team_id;
                     league.team_name = team.name;
                     console.log(`   ✅ Found user team: ${team.name} (${team.team_key}, ID: ${team.team_id})`);
-                    userTeamFound = true;
                     break;
                   }
                 }
               }
               
-              if (!userTeamFound) {
-                console.log(`   ⚠️ No user team found in league ${league.league_key} - will try fallback`);
-                leaguesNeedingFallback.push({ league, key });
+              if (!league.team_key) {
+                console.log(`   ⚠️ No user team found in league ${league.league_key}`);
               }
             } else {
-              console.log(`   ⚠️ No teams data found in league ${league.league_key} - will try fallback`);
-              leaguesNeedingFallback.push({ league, key });
-            }
-          }
-        }
-        
-        // FALLBACK: For leagues without teams or without user team detected, make secondary calls
-        if (leaguesNeedingFallback.length > 0) {
-          console.log(`🔄 FALLBACK: Making secondary calls for ${leaguesNeedingFallback.length} leagues`);
-          
-          for (const { league, key } of leaguesNeedingFallback) {
-            try {
-              console.log(`   📞 Fallback call for league: ${league.name} (${league.league_key})`);
-              
-              const teamsResponse = await axios.get(
-                `https://fantasysports.yahooapis.com/fantasy/v2/league/${league.league_key}/teams?format=json`,
-                {
-                  headers: {
-                    'Authorization': `Bearer ${tokenData.access_token}`,
-                    'Accept': 'application/json'
-                  }
-                }
-              );
-              
-              const fallbackTeams = teamsResponse.data?.fantasy_content?.league?.[1]?.teams;
-              
-              if (fallbackTeams && fallbackTeams.length > 0) {
-                console.log(`   ✅ Fallback found ${fallbackTeams.length} teams`);
-                
-                // Look for user's team in fallback data
-                for (let i = 0; i < fallbackTeams.length; i++) {
-                  const team = fallbackTeams[i]?.team?.[0];
-                  if (team) {
-                    console.log(`      Team ${i+1}: ${team.name} (${team.team_key}) - is_owned_by_current_login: ${team.is_owned_by_current_login}`);
-                    
-                    if (team.is_owned_by_current_login === "1" || team.is_owned_by_current_login === 1) {
-                      // Add user's team info to league data
-                      league.team_key = team.team_key;
-                      league.team_id = team.team_id;
-                      league.team_name = team.name;
-                      console.log(`      ✅ FALLBACK SUCCESS: Found user team: ${team.name} (${team.team_key}, ID: ${team.team_id})`);
-                      break;
-                    }
-                  }
-                }
-                
-                if (!league.team_key) {
-                  console.log(`      ❌ FALLBACK: Still no user team found in league ${league.league_key}`);
-                }
-              } else {
-                console.log(`      ❌ FALLBACK: No teams returned for league ${league.league_key}`);
-              }
-              
-            } catch (fallbackErr) {
-              console.log(`      ❌ FALLBACK ERROR for league ${league.league_key}:`, fallbackErr.response?.status, fallbackErr.message);
+              console.log(`   ⚠️ No teams data found in league ${league.league_key}`);
             }
           }
         }
