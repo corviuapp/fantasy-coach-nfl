@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { API_URL } from '../config';
+// Removed API_URL import - using hardcoded URLs
 
 const AskCoach = () => {
   const [messages, setMessages] = useState([]);
@@ -77,8 +77,9 @@ const AskCoach = () => {
     await new Promise(resolve => setTimeout(resolve, 500));
     
     try {
-      const response = await fetch(`${API_URL}/api/coach/ask`, {
+      const response = await fetch("https://backend-production-5421.up.railway.app/api/coach/ask", {
         method: 'POST',
+        credentials: "include",
         headers: {
           'Content-Type': 'application/json',
         },

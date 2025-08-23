@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { API_URL } from '../config';
+// Removed API_URL import - using hardcoded URLs
 
 const ExpertConsensus = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -29,7 +29,13 @@ const ExpertConsensus = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_URL}/api/expert-consensus`);
+      const response = await fetch("https://backend-production-5421.up.railway.app/api/expert-consensus", {
+        method: "GET",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json"
+        }
+      });
       const data = await response.json();
       
       const playersData = Array.isArray(data) ? data : [];

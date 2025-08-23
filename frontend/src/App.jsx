@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import RulesExplainer from './components/RulesExplainer';
 import ExpertConsensus from './components/ExpertConsensus';
 import AskCoach from './components/AskCoach';
-import { API_URL } from './config';
+// Removed API_URL import - using hardcoded URLs
 
 function App() {
   const [showLogin, setShowLogin] = useState(true);
@@ -39,15 +39,21 @@ function App() {
       setLoading(true);
       try {
         const url = teamKey ? 
-          `${API_URL}/api/yahoo/roster?sessionId=${sessionId}&leagueKey=${leagueKey}&teamKey=${teamKey}` :
-          `${API_URL}/api/yahoo/roster?sessionId=${sessionId}&leagueKey=${leagueKey}`;
+          `https://backend-production-5421.up.railway.app/api/yahoo/roster?sessionId=${sessionId}&leagueKey=${leagueKey}&teamKey=${teamKey}` :
+          `https://backend-production-5421.up.railway.app/api/yahoo/roster?sessionId=${sessionId}&leagueKey=${leagueKey}`;
         
         console.log(`🚨 FRONTEND DEBUG: Llamando a roster con:`);
         console.log(`   - leagueKey: ${leagueKey}`);
         console.log(`   - teamKey: ${teamKey || 'AUTO-DETECT'}`);
         console.log(`   - URL completa: ${url}`);
         
-        const response = await fetch(url);
+        const response = await fetch(url, {
+          method: "GET",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json"
+          }
+        });
         const data = await response.json();
         console.log('🚨 EMERGENCY DEBUG - Raw roster data:', JSON.stringify(data, null, 2));
         
@@ -140,8 +146,9 @@ function App() {
       setError('');
       
       try {
-        const response = await fetch(`${API_URL}/api/lineup/optimize`, {
+        const response = await fetch("https://backend-production-5421.up.railway.app/api/lineup/optimize", {
           method: 'POST',
+          credentials: "include",
           headers: {
             'Content-Type': 'application/json',
           },
@@ -538,8 +545,9 @@ function App() {
     setError('');
     
     try {
-      const response = await fetch(`${API_URL}/api/auth/login`, {
+      const response = await fetch("https://backend-production-5421.up.railway.app/api/auth/login", {
         method: 'POST',
+        credentials: "include",
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(loginData)
       });
@@ -553,7 +561,7 @@ function App() {
         setError('Invalid credentials. Use demo@example.com / demo123');
       }
     } catch (err) {
-      setError(`Cannot connect to backend. Make sure it's running on ${API_URL}`);
+      setError(`Cannot connect to backend. Make sure it's running on https://backend-production-5421.up.railway.app`);
     }
     
     setLoading(false);
@@ -561,7 +569,13 @@ function App() {
 
   const loadDraftRecommendations = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/recommendations/draft`);
+      const response = await fetch("https://backend-production-5421.up.railway.app/api/recommendations/draft", {
+        method: "GET",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json"
+        }
+      });
       const data = await response.json();
       setDraftRecs(data);
     } catch (err) {
@@ -571,7 +585,13 @@ function App() {
 
   const fetchLeagues = async (sessionId) => {
     try {
-      const response = await fetch(`${API_URL}/api/yahoo/leagues?sessionId=${sessionId}`);
+      const response = await fetch(`https://backend-production-5421.up.railway.app/api/yahoo/leagues?sessionId=${sessionId}`, {
+        method: "GET",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json"
+        }
+      });
       const data = await response.json();
       
       console.log('🚨 LEAGUES RESPONSE:', JSON.stringify(data, null, 2));
@@ -983,8 +1003,12 @@ function App() {
               <button
                 onClick={async () => {
                   try {
-                    const response = await fetch(`${API_URL}/api/auth/yahoo`, {
-                      credentials: 'include'
+                    const response = await fetch("https://backend-production-5421.up.railway.app/api/auth/yahoo", {
+                      method: "GET",
+                      credentials: 'include',
+                      headers: {
+                        "Content-Type": "application/json"
+                      }
                     });
                     const data = await response.json();
                     if (data.url) {
