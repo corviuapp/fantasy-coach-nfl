@@ -100,30 +100,6 @@ app.get('/api/auth/yahoo', (req, res) => {
 });
 
 /*
-// Callback de Yahoo
-app.get('/auth/yahoo/callback', async (req, res) => {
-  const { code } = req.query;
-  
-  try {
-    const tokens = await yahoo.getAccessToken(code);
-    
-    // Guardar tokens en la DB
-    const stmt = db.prepare('INSERT OR REPLACE INTO users (email, username, password_hash) VALUES (?, ?, ?)');
-    stmt.run('yahoo@user.com', 'Yahoo User', JSON.stringify(tokens));
-    
-    // Obtener ligas del usuario
-    const leagues = await yahoo.getUserLeagues(tokens.access_token);
-    console.log('Yahoo leagues:', leagues);
-    
-    // Redirigir al frontend con éxito
-    res.redirect('http://localhost:5173/#yahoo-success');
-  } catch (error) {
-    console.error('Yahoo auth error:', error);
-    res.redirect('http://localhost:5173/#yahoo-error');
-  }
-});
-*/
-/*
 // Obtener ligas de Yahoo
 app.get('/api/yahoo/leagues', async (req, res) => {
   try {
@@ -137,39 +113,6 @@ app.get('/api/yahoo/leagues', async (req, res) => {
   }
 });
 */
-// Yahoo OAuth callback
-app.get('/auth/yahoo/callback', async (req, res) => {
-  const { code } = req.query;
-  
-  try {
-    if (!code) {
-      return res.redirect('https://frontend-production-f269.up.railway.app#yahoo-error');
-    }
-
-    // 1) Intercambiar el código por un access token
-    const tokens = await yahoo.getAccessToken(code);
-    console.log('Token exchange successful!');
-    console.log('Access token received:', tokens.access_token ? 'YES' : 'NO');
-    console.log('Refresh token received:', tokens.refresh_token ? 'YES' : 'NO');
-    
-    // 2) Generar un sessionId único
-    const sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    
-    // 3) Guardar el token en el Map temporal
-    tokenStore.set(sessionId, {
-      access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token,
-      timestamp: Date.now()
-    });
-    
-    // 4) Redirigir al frontend con el sessionId como parámetro
-    console.log('Redirecting to frontend with session:', sessionId);
-    res.redirect(`https://frontend-production-f269.up.railway.app#yahoo-success?sessionId=${sessionId}`);
-  } catch (error) {
-    console.error('Error in callback:', error.message, error.stack);
-    res.redirect('https://frontend-production-f269.up.railway.app#yahoo-error');
-  }
-});
 
 app.get('/api/yahoo/test-leagues', async (req, res) => {
   try {
