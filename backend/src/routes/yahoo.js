@@ -2,6 +2,10 @@ import express from 'express';
 import axios from 'axios';
 import { YahooService } from '../../YahooService.js';
 import { v4 as uuidv4 } from 'uuid';
+import fs from 'fs';
+import path from 'path';
+
+const TOKENS_FILE = path.join(process.cwd(), 'tokens.json');
 
 // Global variables to store tokens
 let globalAccessToken = null;
@@ -65,6 +69,17 @@ router.get('/callback', async (req, res) => {
     console.log('Getting token with code...');
     const tokenData = await yahooService.getAccessToken(code);
     console.log('Token received successfully!');
+    
+    try {
+      fs.writeFileSync(TOKENS_FILE, JSON.stringify({
+        accessToken: tokenData.access_token,
+        refreshToken: tokenData.refresh_token,
+        timestamp: Date.now()
+      }));
+      console.log('Tokens saved to file');
+    } catch (err) {
+      console.error('Error saving tokens:', err);
+    }
     
     // DEBUGGING COMPLETO - Ver toda la información del token
     console.log('\\n=== TOKEN DATA DEBUG ===');
@@ -324,10 +339,24 @@ router.get('/callback', async (req, res) => {
 
 // Get stored tokens endpoint
 router.get('/get-tokens', (req, res) => {
-  res.json({
-    accessToken: globalAccessToken,
-    refreshToken: globalRefreshToken
-  });
+  try {
+    if (fs.existsSync(TOKENS_FILE)) {
+      const data = JSON.parse(fs.readFileSync(TOKENS_FILE, 'utf8'));
+      console.log('Tokens read from file, age:', Date.now() - data.timestamp, 'ms');
+      return res.json({
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken
+      });
+    }
+    console.log('No tokens file found');
+    res.json({
+      accessToken: null,
+      refreshToken: null
+    });
+  } catch (error) {
+    console.error('Error reading tokens:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 router.get("/leagues", async (req, res) => {
