@@ -658,53 +658,16 @@ function App() {
   }, []);
 
   useEffect(() => {
-    // Verificar si viene de Yahoo OAuth
     const hash = window.location.hash;
-    
-    // Check for accessToken in hash
-    const accessTokenMatch = hash.match(/[?&]accessToken=([^&#]*)/i) || hash.match(/#accessToken=([^&#]*)/i);
-    if (accessTokenMatch) {
-      const accessToken = accessTokenMatch[1];
-      // Store in localStorage
-      localStorage.setItem('yahoo_accessToken', accessToken);
-      // Fetch leagues
-      fetchLeagues(accessToken);
-      // Clean the hash
-      window.location.hash = '';
-      setShowLogin(false);
-      return;
-    }
-    
-    if (hash.includes('yahoo-success')) {
-      // Fetch tokens from backend endpoint
-      fetch('https://backend-production-5421.up.railway.app/api/auth/yahoo/get-tokens', {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.accessToken) {
-          console.log('Yahoo accessToken received from backend:', data.accessToken);
-          localStorage.setItem('yahoo_accessToken', data.accessToken);
-          setShowLogin(false);
-          fetchLeagues(data.accessToken);
-        } else {
-          console.error('No accessToken received from backend');
-          alert('Authentication failed. Please try again.');
-        }
-      })
-      .catch(err => {
-        console.error('Error fetching tokens:', err);
-        alert('Error fetching authentication tokens. Please try again.');
-      });
-      
-      window.location.hash = '';
-    } else if (hash === '#yahoo-error') {
-      alert('Yahoo connection failed. Please try again.');
-      window.location.hash = '';
+    if (hash.includes("access_token")) {
+      const params = new URLSearchParams(hash.substring(1));
+      const accessToken = params.get("access_token");
+      if (accessToken) {
+        localStorage.setItem("yahoo_accessToken", accessToken);
+        setShowLogin(false);
+        fetchLeagues(accessToken);
+        window.location.hash = "";
+      }
     }
     
     // Check if there's a stored accessToken on component mount

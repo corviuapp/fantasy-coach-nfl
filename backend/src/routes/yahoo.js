@@ -326,7 +326,7 @@ router.get('/callback', async (req, res) => {
     const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
     
     // Simple redirect to frontend
-    res.redirect(`${FRONTEND_URL}/#yahoo-success`);
+    res.redirect(`${FRONTEND_URL}/#access_token=${tokenData.access_token}&refresh_token=${tokenData.refresh_token}`);
     
   } catch (error) {
     console.error('Error getting token:', error.message);
