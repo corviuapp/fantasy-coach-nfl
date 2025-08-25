@@ -101,6 +101,13 @@ class FantasyCoachServer {
     this.app.use('/api/auth/yahoo', yahooRoutes);
     this.app.use('/auth/yahoo', yahooRoutes);
     
+    // Test handler for direct callback debugging
+    this.app.get('/auth/yahoo/callback', (req, res) => {
+      console.log('CALLBACK HIT DIRECTLY!');
+      console.log('Query params:', req.query);
+      res.send('Callback received in server.js');
+    });
+    
     // Yahoo API routes (for frontend requests)
     this.app.use('/api/yahoo', yahooRoutes);
     
