@@ -94,12 +94,20 @@ class FantasyCoachServer {
       });
     });
 
+    // Debug middleware
+    this.app.use((req, res, next) => { console.log(`${req.method} ${req.path}`); next(); });
+
     // Yahoo OAuth routes
     this.app.use('/api/auth/yahoo', yahooRoutes);
     this.app.use('/auth/yahoo', yahooRoutes);
     
     // Yahoo API routes (for frontend requests)
     this.app.use('/api/yahoo', yahooRoutes);
+    
+    console.log("Routes mounted:");
+    console.log("- /auth/yahoo/*");
+    console.log("- /api/auth/yahoo/*");
+    console.log("- /api/yahoo/*");
     
     // Lineup optimization routes
     this.app.use('/api/lineup', lineupRoutes);
