@@ -96,6 +96,7 @@ class FantasyCoachServer {
 
     // Yahoo OAuth routes
     this.app.use('/api/auth/yahoo', yahooRoutes);
+    this.app.use('/auth/yahoo', yahooRoutes);
     
     // Yahoo API routes (for frontend requests)
     this.app.use('/api/yahoo', yahooRoutes);
