@@ -1,4 +1,3 @@
-// backend/src/server.js
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -10,12 +9,10 @@ import pg from 'pg';
 import yahooRoutes from './src/routes/yahoo.js';
 import lineupRoutes from './src/routes/lineup.js';
 
-// Cargar variables de entorno
 dotenv.config();
 
 const { Pool } = pg;
 
-// Simple in-memory session store (for development only)
 export const sessionStore = new Map();
 
 class FantasyCoachServer {
@@ -33,52 +30,43 @@ class FantasyCoachServer {
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
     });
 
-    // Test connection
     try {
       await this.pool.query('SELECT NOW()');
       console.log('✅ Database connected');
     } catch (error) {
-      console.log('⚠️  Database not connected (this is normal on first run)');
+      console.log('⚠️  Database connection failed:', error.message);
     }
   }
 
   setupMiddleware() {
-    // Trust proxy (required for Railway deployment)
     this.app.set('trust proxy', 1);
-
-    // Security
+    
     this.app.use(helmet());
     this.app.use(cors({
-      origin: "https://frontend-production-f269.up.railway.app",
+      origin: process.env.FRONTEND_URL || "https://frontend-production-f269.up.railway.app",
       credentials: true,
       methods: ["GET", "POST", "PUT", "DELETE"],
       allowedHeaders: ["Content-Type", "Authorization"]
     }));
 
-    // Session configuration
     this.app.use(session({
       secret: process.env.SESSION_SECRET || 'fallback-secret-key',
       resave: false,
       saveUninitialized: false,
       cookie: {
-        secure: true,
-        sameSite: "none",
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? "none" : "lax",
         httpOnly: true,
-        domain: ".railway.app",
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+        maxAge: 24 * 60 * 60 * 1000
       }
     }));
 
-    // Body parsing
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
-    
-    // Logging
     this.app.use(morgan('dev'));
   }
 
   setupRoutes() {
-    // Health check
     this.app.get('/health', (req, res) => {
       res.json({ 
         status: 'healthy', 
@@ -86,7 +74,6 @@ class FantasyCoachServer {
       });
     });
 
-    // Test route
     this.app.get('/api/test', (req, res) => {
       res.json({ 
         message: 'Fantasy Coach NFL API is working!',
@@ -94,47 +81,18 @@ class FantasyCoachServer {
       });
     });
 
-    // Debug middleware
-    this.app.use((req, res, next) => { console.log(`${req.method} ${req.path}`); next(); });
-
     // Yahoo OAuth routes
     this.app.use('/api/auth/yahoo', yahooRoutes);
     this.app.use('/auth/yahoo', yahooRoutes);
-    
-    // Test handler for direct callback debugging
-    this.app.get('/auth/yahoo/callback', (req, res) => {
-      console.log('CALLBACK HIT DIRECTLY!');
-      console.log('Query params:', req.query);
-      res.send('Callback received in server.js');
-    });
-    
-    // Yahoo API routes (for frontend requests)
     this.app.use('/api/yahoo', yahooRoutes);
-    
-    console.log("Routes mounted:");
-    console.log("- /auth/yahoo/*");
-    console.log("- /api/auth/yahoo/*");
-    console.log("- /api/yahoo/*");
     
     // Lineup optimization routes
     this.app.use('/api/lineup', lineupRoutes);
 
-    // Auth routes (básicas por ahora)
-    this.app.post('/api/auth/register', async (req, res) => {
-      const { email, username, password } = req.body;
-      
-      // Por ahora, solo retornamos success para testing
-      res.json({
-        success: true,
-        user: { email, username },
-        token: 'fake-jwt-token-for-testing'
-      });
-    });
-
+    // Basic auth routes
     this.app.post('/api/auth/login', async (req, res) => {
       const { email, password } = req.body;
       
-      // Login de prueba
       if (email === 'demo@example.com' && password === 'demo123') {
         res.json({
           success: true,
@@ -152,33 +110,9 @@ class FantasyCoachServer {
 
     // Mock recommendations
     this.app.get('/api/recommendations/draft', (req, res) => {
-      res.json([
-        {
-          player: { name: 'Justin Jefferson', position: 'WR', team: 'MIN' },
-          score: 92,
-          confidence: 88,
-          explanation: 'Elite WR1 with consistent production. Great value here.',
-          factors: {
-            expert: { display: 'Expert Rank: #3', value: 95 },
-            projection: { display: 'Projected: 320 pts', value: 90 },
-            need: { display: 'Team Need: High', value: 88 }
-          }
-        },
-        {
-          player: { name: 'Breece Hall', position: 'RB', team: 'NYJ' },
-          score: 88,
-          confidence: 82,
-          explanation: 'Top-5 RB with massive upside. Fully healthy.',
-          factors: {
-            expert: { display: 'Expert Rank: #7', value: 87 },
-            projection: { display: 'Projected: 285 pts', value: 86 },
-            need: { display: 'Team Need: Critical', value: 92 }
-          }
-        }
-      ]);
+      res.json([]);
     });
 
-    // 404 handler
     this.app.use('*', (req, res) => {
       res.status(404).json({ error: 'Route not found' });
     });
@@ -188,20 +122,14 @@ class FantasyCoachServer {
     this.server = createServer(this.app);
     
     this.server.listen(this.port, () => {
-      console.log('');
-      console.log('🏈 ================================');
-      console.log(`🚀 Fantasy Coach NFL API`);
-      console.log(`📡 Running on: http://localhost:${this.port}`);
+      console.log('🏈 Fantasy Coach NFL API');
+      console.log(`📡 Running on port ${this.port}`);
       console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
-      console.log('🏈 ================================');
-      console.log('');
     });
   }
 }
 
-// Start server
 const server = new FantasyCoachServer();
 server.start();
 
 export default server;
-// Redeploy at Mon Aug 25 10:18:25 CST 2025
