@@ -29,7 +29,7 @@ const ExpertConsensus = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("https://backend-production-5421.up.railway.app/api/expert-consensus", {
+      const response = await fetch("https://fantasy-coach-backend-jyzu879f4-albertos-projects-d995ef2b.vercel.app/api/expert-consensus", {
         method: "GET",
         credentials: "include",
         headers: {
