@@ -40,8 +40,8 @@ function App() {
       setLoading(true);
       try {
         const url = teamKey ? 
-          `https://fantasy-coach-backend-jyzu879f4-albertos-projects-d995ef2b.vercel.app/api/yahoo/roster?accessToken=${accessToken}&leagueKey=${leagueKey}&teamKey=${teamKey}` :
-          `https://fantasy-coach-backend-jyzu879f4-albertos-projects-d995ef2b.vercel.app/api/yahoo/roster?accessToken=${accessToken}&leagueKey=${leagueKey}`;
+          `https://fantasy-coach-backend.vercel.app/api/yahoo/roster?accessToken=${accessToken}&leagueKey=${leagueKey}&teamKey=${teamKey}` :
+          `https://fantasy-coach-backend.vercel.app/api/yahoo/roster?accessToken=${accessToken}&leagueKey=${leagueKey}`;
         
         console.log(`🚨 FRONTEND DEBUG: Llamando a roster con:`);
         console.log(`   - leagueKey: ${leagueKey}`);
@@ -148,7 +148,7 @@ function App() {
       
       try {
         const accessToken = localStorage.getItem('yahoo_accessToken');
-        const response = await fetch("https://fantasy-coach-backend-jyzu879f4-albertos-projects-d995ef2b.vercel.app/api/lineup/optimize", {
+        const response = await fetch("https://fantasy-coach-backend.vercel.app/api/lineup/optimize", {
           method: 'POST',
           credentials: "include",
           headers: {
@@ -547,7 +547,7 @@ function App() {
     setError('');
     
     try {
-      const response = await fetch("https://fantasy-coach-backend-jyzu879f4-albertos-projects-d995ef2b.vercel.app/api/auth/login", {
+      const response = await fetch("https://fantasy-coach-backend.vercel.app/api/auth/login", {
         method: 'POST',
         credentials: "include",
         headers: { 'Content-Type': 'application/json' },
@@ -563,7 +563,7 @@ function App() {
         setError('Invalid credentials. Use demo@example.com / demo123');
       }
     } catch (err) {
-      setError(`Cannot connect to backend. Make sure it's running on https://fantasy-coach-backend-jyzu879f4-albertos-projects-d995ef2b.vercel.app`);
+      setError(`Cannot connect to backend. Make sure it's running on https://fantasy-coach-backend.vercel.app`);
     }
     
     setLoading(false);
@@ -571,7 +571,7 @@ function App() {
 
   const loadDraftRecommendations = async () => {
     try {
-      const response = await fetch("https://fantasy-coach-backend-jyzu879f4-albertos-projects-d995ef2b.vercel.app/api/recommendations/draft", {
+      const response = await fetch("https://fantasy-coach-backend.vercel.app/api/recommendations/draft", {
         method: "GET",
         credentials: "include",
         headers: {
@@ -587,7 +587,7 @@ function App() {
 
   const fetchLeagues = async (accessToken) => {
     try {
-      const response = await fetch(`https://fantasy-coach-backend-jyzu879f4-albertos-projects-d995ef2b.vercel.app/api/yahoo/leagues?accessToken=${accessToken}`, {
+      const response = await fetch(`https://fantasy-coach-backend.vercel.app/api/yahoo/leagues?accessToken=${accessToken}`, {
         method: "GET",
         credentials: "include",
         headers: {
@@ -985,7 +985,7 @@ function App() {
               <button
                 onClick={async () => {
                   try {
-                    const response = await fetch("https://fantasy-coach-backend-jyzu879f4-albertos-projects-d995ef2b.vercel.app/api/auth/yahoo", {
+                    const response = await fetch("https://fantasy-coach-backend.vercel.app/api/auth/yahoo", {
                       method: "GET",
                       credentials: 'include',
                       headers: {
