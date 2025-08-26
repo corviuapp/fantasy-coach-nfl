@@ -77,7 +77,7 @@ const AskCoach = () => {
     await new Promise(resolve => setTimeout(resolve, 500));
     
     try {
-      const response = await fetch("https://fantasy-coach-backend.vercel.app/api/coach/ask", {
+      const response = await fetch("https://fantasy-coach-backend-production.up.railway.app/api/coach/ask", {
         method: 'POST',
         credentials: "include",
         headers: {
