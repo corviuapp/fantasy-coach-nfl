@@ -214,8 +214,8 @@ function App() {
               >
                 <option value="">Choose a league...</option>
                 {availableLeagues.map((league) => (
-                  <option key={league.id} value={league.id}>
-                    {league.name} ({league.teams} teams)
+                  <option key={league.league_key} value={league.league_key}>
+                    {league.name} ({league.team_count} teams)
                   </option>
                 ))}
               </select>
