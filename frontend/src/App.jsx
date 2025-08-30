@@ -598,41 +598,24 @@ function App() {
       
       console.log('🚨 LEAGUES RESPONSE:', JSON.stringify(data, null, 2));
       
-      if (data.fantasy_content) {
-        const yahooLeagues = [];
-        const users = data.fantasy_content.users;
-        if (users && users['0']) {
-          const user = users['0'].user;
-          if (user && user[1] && user[1].games) {
-            const games = user[1].games;
-            if (games && games['0'] && games['0'].game) {
-              const game = games['0'].game;
-              if (game[1] && game[1].leagues) {
-                const leaguesObj = game[1].leagues;
-                // Iterar sobre las propiedades del objeto (0, 1, 2, 3, count)
-                for (const key in leaguesObj) {
-                  if (key !== 'count' && leaguesObj[key].league) {
-                    const league = leaguesObj[key].league[0];
-                    const leagueData = {
-                      id: league.league_key,
-                      name: league.name,
-                      teams: parseInt(league.num_teams),
-                      platform: 'yahoo',
-                      draft_status: league.draft_status,
-                      user_team_key: league.user_team_key, // ✅ Add user's team key
-                      user_team_name: league.user_team_name // ✅ Add user's team name
-                    };
-                    
-                    console.log(`🚨 Liga procesada: ${league.name} - User team: ${league.user_team_name} (${league.user_team_key})`);
-                    yahooLeagues.push(leagueData);
-                  }
-                }
-              }
-            }
-          }
-        }
+      // El backend ahora envía las ligas directamente como un array
+      if (Array.isArray(data)) {
+        const yahooLeagues = data.map(league => ({
+          id: league.league_key,
+          name: league.name,
+          teams: league.team_count,
+          platform: 'yahoo',
+          draft_status: league.draft_status,
+          user_team_key: league.team_key || null,
+          user_team_name: league.team_name || null
+        }));
+        
         console.log('Parsed leagues:', yahooLeagues);
         setLeagues(yahooLeagues);
+      } else {
+        console.log('Unexpected data format:', data);
+        setLeagues([]);
+      }
       }
     } catch (err) {
       console.error('Error fetching leagues:', err);
