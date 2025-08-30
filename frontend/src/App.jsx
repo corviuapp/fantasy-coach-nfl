@@ -616,7 +616,6 @@ function App() {
         console.log('Unexpected data format:', data);
         setLeagues([]);
       }
-      }
     } catch (err) {
       console.error('Error fetching leagues:', err);
     }
